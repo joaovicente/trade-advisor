@@ -1,0 +1,9 @@
+numpy<2.0.0
+backtrader
+requests
+TA-Lib
+matplotlib
+yfinance
+logging
+fastapi
+click
