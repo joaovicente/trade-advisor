@@ -4,9 +4,10 @@ from services.backtesting import trades_today
 
 @click.command()
 @click.argument('tickers')
-def trade_today(tickers):
-    """Advise on trades that should be made today. Format tickers as CSV e.g.: AMZN,GOOG,MSFT"""
-    click.echo("TODO: Advise on trades that should be made today")
+@click.option('--today', help='mock today\'s date for testing in yyyy-mm-dd format (e.g. --today=2024-07-14')
+def trade_today(tickers, today):
+    """Advise on trades that should be made today. TICKERS provided as CSV. e.g.: AMZN,GOOG,MSFT)"""
+    #TODO: Pass in today's date
     trades_today(tickers)
 
 
