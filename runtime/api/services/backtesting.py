@@ -1,15 +1,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import datetime  # For datetime objects
-import os.path  # To manage paths
-import sys  # To find out the script name (in argv[0])
-
-# Import the backtrader platform
 import backtrader as bt
-import backtrader.analyzers as btanalyzers
-import yfinance as yf
-
 
 # Create a Stratey
 class TestStrategy(bt.Strategy):
@@ -18,7 +10,8 @@ class TestStrategy(bt.Strategy):
         ('upper_rsi', 60),
         ('lower_rsi', 50),
         ('loss_pct_threshold', 5),
-        ('fixed_investment_ammount', 3000)
+        ('fixed_investment_amount', 3000),
+        ('custom_callback', None)
     )
 
     def log(self, txt, dt=None, do_print=False):
@@ -27,11 +20,7 @@ class TestStrategy(bt.Strategy):
             dt = dt or self.datas[0].datetime.date(0)
             print('%s, %s' % (dt.isoformat(), txt))
 
-    def add_custom_stats(self, stats):
-        self.custom_stats.append(stats)
-        
     def __init__(self):
-        self.custom_stats = []
         # To keep track of pending orders and buy price/commission
         self.order = {data._name: None for data in self.datas}
         self.buyprice = {data._name: None for data in self.datas}
@@ -132,7 +121,7 @@ class TestStrategy(bt.Strategy):
                     self.log('%s BUY CREATE, %.2f' % (data._name, data.close[0]))
 
                     # Buy dollar ammount
-                    self.order[data._name] = self.buy(data=data, size=float(self.params.fixed_investment_ammount / data.close[0]))
+                    self.order[data._name] = self.buy(data=data, size=float(self.params.fixed_investment_amount / data.close[0]))
 
             else:
                 # TODO: Sell when RSI crosses over RSI-based-MA comming down above RSI 60, or when position showing 10% loss
@@ -144,65 +133,10 @@ class TestStrategy(bt.Strategy):
                     self.order[data._name] = self.sell(data = data, size = self.getposition(data).size)
 
     def stop(self):
-        self.add_custom_stats({'rsi_lower': self.params.lower_rsi, 
-                      'rsi_upper': self.params.upper_rsi, 
-                      'loss_pct': self.params.loss_pct_threshold,
-                      'final_value': round(self.broker.getvalue())}) 
         self.log(f'RSI: {self.params.upper_rsi}/{self.params.lower_rsi}, ' +
                  f'loss_pct: {self.params.loss_pct_threshold}, '
-                 f'investment: {self.params.fixed_investment_ammount}, '
-                 f'End portfolio value: {round(self.broker.getvalue())}', do_print=True)
+                 f'investment: {self.params.fixed_investment_amount}, '
+                 f'End portfolio value: {round(self.broker.getvalue())}')
+        if self.params.custom_callback is not None:
+            self.params.custom_callback(self)
 
-def trades_today(tickers_csv):
-    tickers = tickers_csv.split(",")
-    # Create a cerebro entity
-    cerebro = bt.Cerebro()
-
-    optimise = False
-    
-    if not optimise:
-        # Add a strategy
-        cerebro.addstrategy(TestStrategy,
-                            printlog=True,
-                            upper_rsi=60,
-                            lower_rsi=50,
-                            loss_pct_threshold = 9,
-                            fixed_investment_ammount=5000)
-    else:
-        strats = cerebro.optstrategy(
-            TestStrategy,
-            upper_rsi=range(55, 70, 5),
-            lower_rsi=range(30, 55, 5),
-            loss_pct_threshold = 9,
-            fixed_investment_ammount=5000
-            )
-        cerebro.addanalyzer(btanalyzers.SharpeRatio, _name='sharpe')
-
-    # Add the Data Feed to Cerebro
-    end_date=datetime.datetime.today().date()
-    start_date = end_date - datetime.timedelta(days=356)
-    
-    #tickers = ['SNOW']
-    #tickers = [ 'AMZN', 'SNOW', 'MSFT', 'AAPL', 'GOOG', 'NVDA', 'META']
-    #tickers = [ 'AMZN', 'SNOW', 'MSFT', 'AAPL', 'GOOG', 'NVDA', 'META', 'JNJ', 'JPM', 'PFE', 'PG', 'UNH', 'V']
-    for ticker in tickers:
-        data = bt.feeds.PandasData(dataname=yf.download(ticker, start_date, end_date))
-        cerebro.adddata(data=data, name=ticker)
-
-    # Set our desired cash start
-    cerebro.broker.setcash(30000.0)
-
-    # Print out the starting conditions
-    print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
-
-    # Run over everything
-    opt_return = cerebro.run(maxcpus=1)
-
-    # Print out the final result
-    print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
-  
-    #stats = cerebro.strategies[0].stats
-    #sorted_results = sorted(stats, key=lambda x: x['final_value'], reverse=True)
-    #for result in sorted_results[:5]:
-    #    print(result)
-    
