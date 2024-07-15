@@ -34,8 +34,16 @@ make setup
 # CLI usage
 
 ## Advise what trades to make today
+
+Given comma separated TICKERS, get trading advice for today 
+
 ```sh
-python runtime/api/cli.py trade-today
+python runtime/api/cli.py trade-today AAPL,MSFT
+```
+
+Mock today's date as follows 
+```sh
+python runtime/api/cli.py trade-today AAPL,MSFT --date=2024-06-30
 ```
 
 # Interactive usage
@@ -46,7 +54,7 @@ python runtime/api/interactive.py
 
 Type commands as you would using CLI
 ```sh
-trade-today
+trade-today AAPL,MSFT
 ```
 
 # References

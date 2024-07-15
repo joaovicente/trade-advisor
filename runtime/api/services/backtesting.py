@@ -13,6 +13,7 @@ class TestStrategy(bt.Strategy):
         ('lower_rsi', 50),
         ('loss_pct_threshold', 5),
         ('fixed_investment_amount', 3000),
+        ('single_date_to_trade', None), # date string expected (e.g. 2023-12-31)
         ('custom_callback', None)
     )
 
@@ -22,7 +23,15 @@ class TestStrategy(bt.Strategy):
             dt = dt or self.datas[0].datetime.date(0)
             print('%s, %s' % (dt.isoformat(), txt))
 
+    def trade_today_mode(self):
+        return self.single_date_to_trade is not None
+
     def __init__(self):
+        if self.params.single_date_to_trade is not None:
+            self.single_date_to_trade = datetime.datetime.strptime(self.params.single_date_to_trade, "%Y-%m-%d").date()
+        else:
+            self.single_date_to_trade = None
+        
         # To keep track of pending orders and buy price/commission
         self.order = {data._name: None for data in self.datas}
         self.buyprice = {data._name: None for data in self.datas}
@@ -41,21 +50,23 @@ class TestStrategy(bt.Strategy):
         # Attention: broker could reject order if not enough cash
         if order.status in [order.Completed]:
             if order.isbuy():
-                self.log(
-                    '%s BUY EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
-                    (order.data._name,
-                     order.executed.price,
-                     order.executed.value,
-                     order.executed.comm))
+                if not self.trade_today_mode():                
+                    self.log(
+                        '%s BUY EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
+                        (order.data._name,
+                        order.executed.price,
+                        order.executed.value,
+                        order.executed.comm))
 
                 self.buyprice[order.data._name] = order.executed.price
                 self.buycomm[order.data._name] = order.executed.comm
             else:  # Sell
-                self.log('%s SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
-                         (order.data._name,
-                          order.executed.price,
-                          order.executed.value,
-                          order.executed.comm))
+                if not self.trade_today_mode():                
+                    self.log('%s SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
+                            (order.data._name,
+                            order.executed.price,
+                            order.executed.value,
+                            order.executed.comm))
 
             #self.bar_executed = len(self)
         elif order.status in [order.Canceled]:
@@ -77,12 +88,18 @@ class TestStrategy(bt.Strategy):
         # Buy when RSI crosses over RSI-based-MA comming up below RSI lower_rsi
         rsi_below_lower_threshold = self.rsi[name][0] < self.params.lower_rsi
         rsi_crossed_above_rsi_ma = self.rsi[name][-1] < self.rsi_ma[name][-1] and self.rsi[name][0] > self.rsi_ma[name][0]
-        return rsi_below_lower_threshold and rsi_crossed_above_rsi_ma
+        is_todays_date = self.single_date_to_trade == self.datas[0].datetime.date(0)
+        if not self.trade_today_mode():
+            buy = rsi_below_lower_threshold and rsi_crossed_above_rsi_ma    
+        else:
+            buy = rsi_below_lower_threshold and rsi_crossed_above_rsi_ma and is_todays_date
+        return buy
         
     def sell_condition(self, name):
         # Sell when RSI crosses over RSI-based-MA coming down above RSI 60, or when position showing 10% loss
         data = self.getdatabyname(name)
-        if not self.getposition(data):
+        if not self.getposition(data) or \
+            (self.trade_today_mode() and self.single_date_to_trade != self.datas[0].datetime.date(0)):
             return False
         else:
             rsi_above_upper_threshold = self.rsi[name][0] > self.params.upper_rsi
@@ -105,9 +122,9 @@ class TestStrategy(bt.Strategy):
             pnl_perc = 0
             if self.getposition(data):
                 pnl_perc = 1 - (self.getposition(data).price / data.close[0]) 
-            
-            self.log('%s Close: %.2f, RSI: %.2f, RSI-MA: %.2f, Position: %.2f, PNL: %.2f%%' 
-                    % (data._name, data.close[0], self.rsi[data._name][0], self.rsi_ma[data._name][0], self.getposition(data).price, pnl_perc*100))
+            if not self.trade_today_mode() or self.datas[0].datetime.date(0) == self.single_date_to_trade:
+                self.log('%s Close: %.2f, RSI: %.2f, RSI-MA: %.2f, Position: %.2f, PNL: %.2f%%' 
+                        % (data._name, data.close[0], self.rsi[data._name][0], self.rsi_ma[data._name][0], self.getposition(data).price, pnl_perc*100))
 
             # Check if an order is pending ... if yes, we cannot send a 2nd one
             if self.order[data._name]:
@@ -115,16 +132,12 @@ class TestStrategy(bt.Strategy):
 
             # Check if we are in the market
             if not self.getposition(data):
-
                 # Buy conditionaly
                 if self.buy_condition(data._name):
-
                     # BUY, BUY, BUY!!! (with all possible default parameters)
-                    self.log('%s BUY CREATE, %.2f' % (data._name, data.close[0]))
-
+                    self.log(f'{data._name} BUY CREATE, {data.close[0]:.2f}')
                     # Buy dollar ammount
                     self.order[data._name] = self.buy(data=data, size=float(self.params.fixed_investment_amount / data.close[0]))
-
             else:
                 # TODO: Sell when RSI crosses over RSI-based-MA comming down above RSI 60, or when position showing 10% loss
 
@@ -135,17 +148,18 @@ class TestStrategy(bt.Strategy):
                     self.order[data._name] = self.sell(data = data, size = self.getposition(data).size)
 
     def stop(self):
-        self.log(f'RSI: {self.params.upper_rsi}/{self.params.lower_rsi}, ' +
-                 f'loss_pct: {self.params.loss_pct_threshold}, '
-                 f'investment: {self.params.fixed_investment_amount}, '
-                 f'End portfolio value: {round(self.broker.getvalue())}')
+        if not self.trade_today_mode():
+            self.log(f'RSI: {self.params.upper_rsi}/{self.params.lower_rsi}, ' +
+                    f'loss_pct: {self.params.loss_pct_threshold}, '
+                    f'investment: {self.params.fixed_investment_amount}, '
+                    f'End portfolio value: {round(self.broker.getvalue())}')
         if self.params.custom_callback is not None:
             self.params.custom_callback(self)
             
             
-def trades_today(tickers):
+def trades_today(tickers, todays_date_str):
     initial_cash = 30000
-    end_date=datetime.datetime.today().date()
+    end_date = datetime.datetime.today().date()
     start_date = end_date - datetime.timedelta(days=356)
     tickers_list = tickers.split(',')
     # Create a cerebro entity
@@ -157,7 +171,8 @@ def trades_today(tickers):
                         upper_rsi=60,
                         lower_rsi=50,
                         loss_pct_threshold = 9,
-                        fixed_investment_amount=5000)
+                        fixed_investment_amount=5000,
+                        single_date_to_trade=todays_date_str)
 
     # Add the Data Feed to Cerebro
     for ticker in tickers_list:
@@ -170,4 +185,4 @@ def trades_today(tickers):
 
     # Run over everything
     opt_runs = cerebro.run(maxcpus=1)
-    print(f'Portfolio Value Starting: {start_portfolio_value:.0f}, End: {cerebro.broker.getvalue():.0f}')
+    #print(f'Portfolio Value Starting: {start_portfolio_value:.0f}, End: {cerebro.broker.getvalue():.0f}')
