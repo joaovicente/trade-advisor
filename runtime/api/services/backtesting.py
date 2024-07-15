@@ -1,7 +1,9 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import datetime  # For datetime objects
 import backtrader as bt
+import yfinance as yf
 
 # Create a Stratey
 class TestStrategy(bt.Strategy):
@@ -139,4 +141,33 @@ class TestStrategy(bt.Strategy):
                  f'End portfolio value: {round(self.broker.getvalue())}')
         if self.params.custom_callback is not None:
             self.params.custom_callback(self)
+            
+            
+def trades_today(tickers):
+    initial_cash = 30000
+    end_date=datetime.datetime.today().date()
+    start_date = end_date - datetime.timedelta(days=356)
+    tickers_list = tickers.split(',')
+    # Create a cerebro entity
+    cerebro = bt.Cerebro(optreturn=False)
 
+     # Add a strategy
+    cerebro.addstrategy(TestStrategy,
+                        printlog=True,
+                        upper_rsi=60,
+                        lower_rsi=50,
+                        loss_pct_threshold = 9,
+                        fixed_investment_amount=5000)
+
+    # Add the Data Feed to Cerebro
+    for ticker in tickers_list:
+        data = bt.feeds.PandasData(dataname=yf.download(ticker, start_date, end_date))
+        cerebro.adddata(data=data, name=ticker)
+
+    # Set our desired cash start
+    cerebro.broker.setcash(initial_cash)
+    start_portfolio_value = cerebro.broker.getvalue()
+
+    # Run over everything
+    opt_runs = cerebro.run(maxcpus=1)
+    print(f'Portfolio Value Starting: {start_portfolio_value:.0f}, End: {cerebro.broker.getvalue():.0f}')
