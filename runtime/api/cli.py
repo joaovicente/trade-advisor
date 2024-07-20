@@ -1,6 +1,7 @@
 import click
-from services.backtesting import trades_today
 import datetime
+from api.services.backtesting_service import trades_today
+from services.open_position_service import OpenPositionService
 
 
 @click.command()
@@ -10,8 +11,7 @@ import datetime
               default=str(datetime.datetime.today().date()))
 def trade_today(tickers, today):
     """Advise on trades that should be made today. TICKERS provided as CSV. e.g.: AMZN,GOOG,MSFT)"""
-    #TODO: Pass in today's date
-    trades_today(tickers, today)
+    trades_today(tickers, today, OpenPositionService().get_all())
 
 
 # Create a Click group to hold the commands
