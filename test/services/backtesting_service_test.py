@@ -7,11 +7,21 @@ def parse_date(date_string):
 
 def test_trade_today_sell_open_position():
     ticker = "SNOW"
+    #2024-04-05, SNOW Close: 153.86, RSI: 32.61, RSI-MA: 35.01, Position: 0.00, PNL: 0.00%
+    #2024-04-08, SNOW Close: 154.86, RSI: 34.22, RSI-MA: 34.96, Position: 0.00, PNL: 0.00%
+    #2024-04-09, SNOW Close: 155.58, RSI: 35.42, RSI-MA: 34.99, Position: 0.00, PNL: 0.00%
+    #2024-04-09, SNOW BUY CREATE, 155.58
     open_positions = [
-        OpenPosition(date=parse_date("2024-06-18"), ticker=ticker, size=24.304851, price=130.49)
+        OpenPosition(date=parse_date("2024-04-09"), ticker=ticker, size=32.1377968, price=155.58)
     ]   
-    # FIXME: Find the date when it would be sold and then test SELL action is returned
-    expected_sell_date = "2024-07-20"
+    # Find the date when it would be sold (at loss) and then test SELL action is returned
+    # TODO: Adjust test when strategy improves to sell when position peak profit halves
+    #2024-05-29, SNOW Close: 148.19, RSI: 36.72, RSI-MA: 47.28, Position: 151.60, PNL: -2.30%
+    #2024-05-30, SNOW Close: 140.95, RSI: 30.74, RSI-MA: 46.10, Position: 151.60, PNL: -7.56%
+    #2024-05-31, SNOW Close: 136.18, RSI: 27.56, RSI-MA: 44.78, Position: 151.60, PNL: -11.32%
+    #2024-05-31, SNOW Maximum tolerated loss reached (9.00%) Selling with 11.32% loss.
+    #2024-05-31, SNOW SELL CREATE, 136.18
+    expected_sell_date = "2024-05-31"
     actions = trades_today(ticker, expected_sell_date, open_positions)
     # Expect sell action is returned
     assert len(actions) == 1
