@@ -18,7 +18,8 @@ class TestStrategy(bt.Strategy):
         ('loss_pct_threshold', 5),
         ('fixed_investment_amount', 3000),
         ('single_date_to_trade', None), # date string expected (e.g. 2023-12-31)
-        ('custom_callback', None)
+        ('custom_callback', None),
+        ('open_positions', None)
     )
 
     def log(self, txt, dt=None, do_print=False):
@@ -101,6 +102,14 @@ class TestStrategy(bt.Strategy):
         else:
             buy = rsi_below_lower_threshold and rsi_crossed_above_rsi_ma and is_todays_date
         return buy
+       
+    def buy_position_recorded(self, name):
+        open_position_recorded = None
+        if self.params.open_positions is not None:
+            for position in self.params.open_positions:
+                if position.ticker == name and position.date == self.datas[0].datetime.date(0):
+                    open_position_recorded = position
+        return open_position_recorded
         
     def sell_condition(self, name):
         # Sell when RSI crosses over RSI-based-MA coming down above RSI 60, or when position showing 10% loss
@@ -143,7 +152,11 @@ class TestStrategy(bt.Strategy):
             # Check if we are in the market
             if not self.getposition(data):
                 # Buy conditionaly
-                if self.buy_condition(data._name):
+                position_recorded = self.buy_position_recorded(data._name)
+                if position_recorded:
+                    self.log(f'{data._name} BUY RECORDED, {position_recorded.price:.2f}')
+                    self.order[data._name] = self.buy(data=data, size=position_recorded.size, price=position_recorded.price)
+                elif self.buy_condition(data._name):
                     # BUY, BUY, BUY!!! (with all possible default parameters)
                     self.log(f'{data._name} BUY CREATE, {data.close[0]:.2f}')
                     # Buy dollar ammount
@@ -151,12 +164,12 @@ class TestStrategy(bt.Strategy):
                     self.trade_actions.append(TradeAction(date=str(self.datas[0].datetime.date(0)), action="BUY", ticker=data._name))
             else:
                 # TODO: Sell when RSI crosses over RSI-based-MA comming down above RSI 60, or when position showing 10% loss
-
                 if self.sell_condition(data._name):
                     # SELL, SELL, SELL!!! (with all possible default parameters)
                     self.log('%s SELL CREATE, %.2f' % (data._name, data.close[0]))
                     # Sell position
                     self.order[data._name] = self.sell(data = data, size = self.getposition(data).size)
+                    self.trade_actions.append(TradeAction(date=str(self.datas[0].datetime.date(0)), action="SELL", ticker=data._name))
 
     def stop(self):
         if not self.trade_today_mode():
@@ -193,7 +206,8 @@ def trades_today(tickers, todays_date_str, open_positions=None):
                         lower_rsi=50,
                         loss_pct_threshold = 9,
                         fixed_investment_amount=5000,
-                        single_date_to_trade=todays_date_str)
+                        single_date_to_trade=todays_date_str,
+                        open_positions=open_positions)
 
     # Add the Data Feed to Cerebro
     for ticker in tickers_list:
