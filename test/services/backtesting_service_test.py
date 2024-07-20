@@ -5,7 +5,7 @@ from datetime import datetime
 def parse_date(date_string):
     return (datetime.strptime(date_string, "%Y-%m-%d")).date()
 
-def test_trade_today_sell_open_position():
+def test_trade_today_sell_single_open_position():
     ticker = "SNOW"
     #2024-04-05, SNOW Close: 153.86, RSI: 32.61, RSI-MA: 35.01, Position: 0.00, PNL: 0.00%
     #2024-04-08, SNOW Close: 154.86, RSI: 34.22, RSI-MA: 34.96, Position: 0.00, PNL: 0.00%
@@ -29,6 +29,9 @@ def test_trade_today_sell_open_position():
     assert actions[0].action == "SELL"
     assert actions[0].ticker == ticker
     
+def test_trade_today_sell_multiple_open_positions():
+    # TODO: Implement me!
+    assert False
     
 def test_trade_today_without_open_positions():
     date = "2024-05-06"
