@@ -28,6 +28,7 @@ def test_trade_today_sell_single_open_position():
     assert actions[0].date == expected_sell_date
     assert actions[0].action == "SELL"
     assert actions[0].ticker == ticker
+    assert actions[0].reason == 'SNOW Maximum tolerated loss reached 9.00% Selling with 11.32% loss'
     
 def test_trade_today_sell_multiple_open_positions():
     ticker = "SNOW"
@@ -43,7 +44,7 @@ def test_trade_today_sell_multiple_open_positions():
     assert actions[0].action == "SELL"
     assert actions[0].ticker == 'SNOW'
     
-def test_trade_today_without_open_positions():
+def test_trade_today_buy_without_open_positions():
     date = "2024-05-06"
     ticker = "META"
     actions = trades_today(ticker, date)
@@ -51,3 +52,4 @@ def test_trade_today_without_open_positions():
     assert actions[0].date == date
     assert actions[0].action == "BUY"
     assert actions[0].ticker == ticker
+    assert actions[0].reason == 'META RSI: 45.78 (yesterday=39.30) above RSI-MA 43.29 under RSI < 50.00 threshold'

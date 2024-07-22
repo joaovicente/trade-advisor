@@ -94,16 +94,20 @@ class TestStrategy(bt.Strategy):
         self.log('%s OPERATION PROFIT, GROSS %.2f, NET %.2f' %
                  (trade.data._name, trade.pnl, trade.pnlcomm))
 
-    def buy_condition(self, name):
-        # Buy when RSI crosses over RSI-based-MA comming up below RSI lower_rsi
+    def buy_action(self, name):
+        buy_action = None
+        # Buy when RSI goes over RSI-MA while under lower_rsi
         rsi_below_lower_threshold = self.rsi[name][0] < self.params.lower_rsi
         rsi_crossed_above_rsi_ma = self.rsi[name][-1] < self.rsi_ma[name][-1] and self.rsi[name][0] > self.rsi_ma[name][0]
         is_todays_date = self.single_date_to_trade == self.datas[0].datetime.date(0)
         if not self.trade_today_mode():
-            buy = rsi_below_lower_threshold and rsi_crossed_above_rsi_ma    
+            buy = rsi_below_lower_threshold and rsi_crossed_above_rsi_ma
         else:
             buy = rsi_below_lower_threshold and rsi_crossed_above_rsi_ma and is_todays_date
-        return buy
+        if buy:
+            buy_action = TradeAction(str(self.datas[0].datetime.date(0)), "BUY", name, None)
+            buy_action.reason = f"{name} RSI: {self.rsi[name][0]:.2f} (yesterday={self.rsi[name][-1]:.2f}) above RSI-MA {self.rsi_ma[name][0]:.2f} under RSI < {self.params.lower_rsi:.2f} threshold"
+        return buy_action
        
     def buy_position_recorded(self, name):
         open_position_recorded = None
@@ -128,7 +132,7 @@ class TestStrategy(bt.Strategy):
             peak_price = max(peak_price, data.close[k])
         return peak_price
     
-    def sell_condition(self, name):
+    def sell_action(self, name):
         sell_action = TradeAction(str(self.datas[0].datetime.date(0)), "SELL", name, None)
         # Sell when RSI crosses over RSI-based-MA coming down above RSI 60, or when position showing 10% loss
         data = self.getdatabyname(name)
@@ -191,20 +195,21 @@ class TestStrategy(bt.Strategy):
 
             # Check if we are in the market
             if not self.getposition(data):
-                # Buy conditionaly
+                # Recorded position from repository
                 position_recorded = self.buy_position_recorded(data._name)
+                buy_action = self.buy_action(data._name)
                 if position_recorded:
                     self.log(f'{data._name} BUY RECORDED, {position_recorded.price:.2f}')
                     self.order[data._name] = self.buy(data=data, size=position_recorded.size, price=position_recorded.price)
-                elif self.buy_condition(data._name):
+                elif buy_action is not None:
                     # BUY, BUY, BUY!!! (with all possible default parameters)
                     self.log(f'{data._name} BUY CREATE, {data.close[0]:.2f}')
                     # Buy dollar ammount
                     self.order[data._name] = self.buy(data=data, size=float(self.params.fixed_investment_amount / data.close[0]))
-                    self.trade_actions.append(TradeAction(date=str(self.datas[0].datetime.date(0)), action="BUY", ticker=data._name))
+                    self.trade_actions.append(buy_action)
             else:
                 # TODO: Sell when RSI crosses over RSI-based-MA comming down above RSI 60, or when position showing 10% loss
-                sell_action = self.sell_condition(data._name)
+                sell_action = self.sell_action(data._name)
                 if sell_action:
                     # SELL, SELL, SELL!!! (with all possible default parameters)
                     self.log('%s SELL CREATE, %.2f' % (data._name, data.close[0]))
