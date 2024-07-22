@@ -30,8 +30,18 @@ def test_trade_today_sell_single_open_position():
     assert actions[0].ticker == ticker
     
 def test_trade_today_sell_multiple_open_positions():
-    # TODO: Implement me!
-    assert False
+    ticker = "SNOW"
+    open_positions = [
+        OpenPosition(date=parse_date("2023-10-30"), ticker='AMZN', size=38.5445575, price=129.72),
+        OpenPosition(date=parse_date("2024-04-09"), ticker='SNOW', size=32.1377968, price=155.58)
+    ]   
+    expected_sell_date = "2024-05-31"
+    actions = trades_today(ticker, expected_sell_date, open_positions)
+    # Expect sell action is returned
+    assert len(actions) == 1
+    assert actions[0].date == expected_sell_date
+    assert actions[0].action == "SELL"
+    assert actions[0].ticker == 'SNOW'
     
 def test_trade_today_without_open_positions():
     date = "2024-05-06"

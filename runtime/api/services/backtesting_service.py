@@ -16,6 +16,7 @@ class TestStrategy(bt.Strategy):
         ('upper_rsi', 60),
         ('lower_rsi', 50),
         ('loss_pct_threshold', 5),
+        ('profit_protection_pct_threshold', 0), # 0 = allow profit to come down to 0%
         ('fixed_investment_amount', 3000),
         ('single_date_to_trade', None), # date string expected (e.g. 2023-12-31)
         ('custom_callback', None),
@@ -41,6 +42,7 @@ class TestStrategy(bt.Strategy):
         self.order = {data._name: None for data in self.datas}
         self.buyprice = {data._name: None for data in self.datas}
         self.buycomm = {data._name: None for data in self.datas}
+        self.last_bought_order_date = {data._name: None for data in self.datas}
             
         # Add the RSI indicator
         self.rsi = {data._name: bt.indicators.RSI(data,plot=True) for data in self.datas}
@@ -68,6 +70,7 @@ class TestStrategy(bt.Strategy):
 
                 self.buyprice[order.data._name] = order.executed.price
                 self.buycomm[order.data._name] = order.executed.comm
+                self.last_bought_order_date[order.data._name] = self.datas[0].datetime.date(0)
             else:  # Sell
                 if not self.trade_today_mode():                
                     self.log('%s SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
@@ -76,7 +79,6 @@ class TestStrategy(bt.Strategy):
                             order.executed.value,
                             order.executed.comm))
 
-            #self.bar_executed = len(self)
         elif order.status in [order.Canceled]:
             self.log('%s Order Canceled' % order.data._name)
         elif order.status in [order.Margin]:
@@ -110,31 +112,65 @@ class TestStrategy(bt.Strategy):
                 if position.ticker == name and position.date == self.datas[0].datetime.date(0):
                     open_position_recorded = position
         return open_position_recorded
+    
+    def peak_price_since_bought(self, data):
+        # Walk back until position date (negative) index is found
+        index = 0
+        j = 0
+        peak_price = self.getposition(data).price
         
+        order_date = self.last_bought_order_date[data._name]
+        while order_date != data.datetime.date(index) and j < self.days_in_buffer():
+            index -= 1
+            j += 1
+        # Now calculate max from than index forward
+        for k in range(index, 1):
+            peak_price = max(peak_price, data.close[k])
+        return peak_price
+    
     def sell_condition(self, name):
+        sell_action = TradeAction(str(self.datas[0].datetime.date(0)), "SELL", name, None)
         # Sell when RSI crosses over RSI-based-MA coming down above RSI 60, or when position showing 10% loss
         data = self.getdatabyname(name)
+        reached_maximum_tolerated_loss = False
+        reached_maximum_profit_loss_tolerance = False
+        # Nothing to sell or not current-trade-day
         if not self.getposition(data) or \
             (self.trade_today_mode() and self.single_date_to_trade != self.datas[0].datetime.date(0)):
             return False
         else:
-            rsi_above_upper_threshold = self.rsi[name][0] > self.params.upper_rsi
-            rsi_crossed_below_rsi_ma = self.rsi[name][-1] > self.rsi_ma[name][-1] and self.rsi[name][0] < self.rsi_ma[name][0]
-            rsi_stayed_below_rsi_ma = self.rsi[name][0] < self.rsi_ma[name][0] and self.rsi[name][-1] < self.rsi_ma[name][-1] and self.rsi[name][-2] < self.rsi_ma[name][-2]
-            percent = self.params.loss_pct_threshold
-            pnl_perc = 1 - (self.getposition(data).price / data.close[0])
-            reached_maximum_tolerated_loss = pnl_perc < -1 * (percent/100)
-            if reached_maximum_tolerated_loss:
-                self.log('%s Maximum tolerated loss reached (%.2f%%) Selling with %.2f%% loss.' 
-                         % (name, percent, pnl_perc * 100 * -1))
-            elif pnl_perc < 0:
-                pass
-                #self.log('%s Position loss of %.2f%% - above tolerated level %.2f' % (name, pnl_perc * 100, percent))
-        return (rsi_above_upper_threshold and rsi_stayed_below_rsi_ma) or reached_maximum_tolerated_loss
+            # Profitable position
+            if data.close[0] > self.getposition(data).price:
+                # Check if we want to protect profit when price is comming down
+                # profit_protection_pct_threshold (0 = all loss of all profit made)
+                share_price_peak = self.peak_price_since_bought(data) 
+                peak_share_profit = share_price_peak - self.getposition(data).price
+                current_per_share_profit = data.close[0] - self.getposition(data).price 
+                profit_pct =  current_per_share_profit / peak_share_profit * 100
+                if profit_pct < self.params.profit_protection_pct_threshold:
+                    reached_maximum_profit_loss_tolerance = True
+                    sell_action.reason = f"{name} Maximum profit loss tolerance reached {self.params.profit_protection_pct_threshold}% Selling with {profit_pct:.2f}% profit"
+                    self.log(sell_action.reason)
+            else:
+                # Check if maximum tolerated loss
+                percent = self.params.loss_pct_threshold
+                pnl_perc = 1 - (self.getposition(data).price / data.close[0])
+                if pnl_perc < -1 * (percent/100):
+                    sell_action.reason = f"{name} Maximum tolerated loss reached {percent:.2f}% Selling with {pnl_perc*100*-1:.2f}% loss"
+                    self.log(sell_action.reason)
+                    reached_maximum_tolerated_loss = True
+        if reached_maximum_profit_loss_tolerance or reached_maximum_tolerated_loss:
+            return sell_action
+        else:
+            return None
+   
+    def days_in_buffer(self):
+        # FIXME: This function does not work consistently for single and multiple tickers - see optimise.ipynb
+        return len(self)
     
     def next(self):
         # Warm-up RSI for rsi_warmup_in_days
-        if len(self) < rsi_warmup_in_days:
+        if self.days_in_buffer() < rsi_warmup_in_days:
             return
         for data in self.datas:
             # Simply log the closing price of the series from the reference
@@ -142,8 +178,12 @@ class TestStrategy(bt.Strategy):
             if self.getposition(data):
                 pnl_perc = 1 - (self.getposition(data).price / data.close[0]) 
             if True or not self.trade_today_mode() or self.datas[0].datetime.date(0) == self.single_date_to_trade:
-                self.log('%s Close: %.2f, RSI: %.2f, RSI-MA: %.2f, Position: %.2f, PNL: %.2f%%' 
-                        % (data._name, data.close[0], self.rsi[data._name][0], self.rsi_ma[data._name][0], self.getposition(data).price, pnl_perc*100))
+                if self.rsi[data._name][0] > self.rsi_ma[data._name][0] and self.rsi[data._name][-1] < self.rsi_ma[data._name][-1]:
+                    rsi_crossover_signal = "*"
+                else:
+                    rsi_crossover_signal = " "
+                self.log('%s Close: %.2f, %sRSI: %.2f, RSI-MA: %.2f, Position: %.2f, PNL: %.2f%%' 
+                        % (data._name, data.close[0], rsi_crossover_signal, self.rsi[data._name][0], self.rsi_ma[data._name][0], self.getposition(data).price, pnl_perc*100))
 
             # Check if an order is pending ... if yes, we cannot send a 2nd one
             if self.order[data._name]:
@@ -164,12 +204,13 @@ class TestStrategy(bt.Strategy):
                     self.trade_actions.append(TradeAction(date=str(self.datas[0].datetime.date(0)), action="BUY", ticker=data._name))
             else:
                 # TODO: Sell when RSI crosses over RSI-based-MA comming down above RSI 60, or when position showing 10% loss
-                if self.sell_condition(data._name):
+                sell_action = self.sell_condition(data._name)
+                if sell_action:
                     # SELL, SELL, SELL!!! (with all possible default parameters)
                     self.log('%s SELL CREATE, %.2f' % (data._name, data.close[0]))
                     # Sell position
                     self.order[data._name] = self.sell(data = data, size = self.getposition(data).size)
-                    self.trade_actions.append(TradeAction(date=str(self.datas[0].datetime.date(0)), action="SELL", ticker=data._name))
+                    self.trade_actions.append(sell_action)
 
     def stop(self):
         if not self.trade_today_mode():
