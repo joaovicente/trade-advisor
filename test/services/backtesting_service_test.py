@@ -1,6 +1,8 @@
 from api.models.open_position import OpenPosition
-from api.services.backtesting_service import trades_today
+from api.services.backtesting_service import TradesToday
 from datetime import datetime
+
+trade_action_context_size = 5
 
 def parse_date(date_string):
     return (datetime.strptime(date_string, "%Y-%m-%d")).date()
@@ -22,13 +24,14 @@ def test_trade_today_sell_single_open_position():
     #2024-05-31, SNOW Maximum tolerated loss reached (9.00%) Selling with 11.32% loss.
     #2024-05-31, SNOW SELL CREATE, 136.18
     expected_sell_date = "2024-05-31"
-    actions = trades_today(ticker, expected_sell_date, open_positions)
+    actions = TradesToday(ticker, expected_sell_date, open_positions).calculate()
     # Expect sell action is returned
     assert len(actions) == 1
     assert actions[0].date == expected_sell_date
     assert actions[0].action == "SELL"
     assert actions[0].ticker == ticker
     assert actions[0].reason == 'SNOW Maximum tolerated loss reached 9.00% Selling with 11.32% loss'
+    assert len(actions[0].context) == trade_action_context_size
     
 def test_trade_today_sell_multiple_open_positions():
     ticker = "SNOW"
@@ -37,19 +40,46 @@ def test_trade_today_sell_multiple_open_positions():
         OpenPosition(date=parse_date("2024-04-09"), ticker='SNOW', size=32.1377968, price=155.58)
     ]   
     expected_sell_date = "2024-05-31"
-    actions = trades_today(ticker, expected_sell_date, open_positions)
+    actions = TradesToday(ticker, expected_sell_date, open_positions).calculate()
     # Expect sell action is returned
     assert len(actions) == 1
     assert actions[0].date == expected_sell_date
     assert actions[0].action == "SELL"
     assert actions[0].ticker == 'SNOW'
+    assert len(actions[0].context) == trade_action_context_size
     
 def test_trade_today_buy_without_open_positions():
     date = "2024-05-06"
     ticker = "META"
-    actions = trades_today(ticker, date)
+    actions = TradesToday(ticker, date).calculate()
     assert len(actions) == 1
     assert actions[0].date == date
     assert actions[0].action == "BUY"
     assert actions[0].ticker == ticker
-    assert actions[0].reason == 'META RSI: 45.78 (yesterday=39.30) above RSI-MA 43.29 under RSI < 50.00 threshold'
+    assert actions[0].reason == 'META RSI: 46.91 (yesterday=40.79) above RSI-MA 46.69 under RSI < 50.00 threshold'
+    assert len(actions[0].context) == trade_action_context_size
+    # '*RSI' is shown when RSI crosses RSI-MA threshold
+    assert '*RSI' in actions[0].context[-1]
+    
+    
+def test_trade_today_rsi_calculation_bug():
+    ticker = "SNOW"
+    open_positions = [
+        OpenPosition(date=parse_date("2024-04-09"), ticker='SNOW', size=32.1377968, price=155.58)
+    ]   
+    date_today = "2024-07-16"
+   
+    scenarios = {'pos': None, 'no_pos': None}
+     
+    scenarios['pos'] = TradesToday(ticker, date_today, open_positions)
+    scenarios['no_pos'] = TradesToday(ticker, date_today)
+   
+    for scenario in list(scenarios.keys()):
+        actions = scenarios[scenario].calculate()
+        print(f'{scenario}:')
+        print(f"start_date={scenarios[scenario].start_date}, end_date={scenarios[scenario].end_date}")
+        print('\n'.join(scenarios[scenario].get_context(ticker)))
+        print('\n')
+        assert '*RSI' in scenarios[scenario].get_context(ticker)[-1], "RSI values should be consistent regardless of start and end dates"
+    assert scenarios['pos'].get_context(ticker)[-1].split(',')[1] == scenarios['no_pos'].get_context(ticker)[-1].split(',')[1], "Expect same RSI values"
+    assert scenarios['pos'].get_context(ticker)[-1].split(',')[2] == scenarios['no_pos'].get_context(ticker)[-1].split(',')[2], "Expect same RSI-MA values"

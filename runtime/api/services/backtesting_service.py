@@ -6,8 +6,10 @@ import backtrader as bt
 import yfinance as yf
 from api.models.trade_action import TradeAction
 
-rsi_warmup_in_weeks = 6
+rsi_warmup_in_weeks = 24
 rsi_warmup_in_days = rsi_warmup_in_weeks * 5 # 5 market-active days per week
+
+trade_action_context_size = 5
 
 # Create a Stratey
 class TestStrategy(bt.Strategy):
@@ -43,6 +45,7 @@ class TestStrategy(bt.Strategy):
         self.buyprice = {data._name: None for data in self.datas}
         self.buycomm = {data._name: None for data in self.datas}
         self.last_bought_order_date = {data._name: None for data in self.datas}
+        self.next_context = {data._name: [] for data in self.datas}
             
         # Add the RSI indicator
         self.rsi = {data._name: bt.indicators.RSI(data,plot=True) for data in self.datas}
@@ -63,7 +66,7 @@ class TestStrategy(bt.Strategy):
                 if not self.trade_today_mode():
                     self.log(
                         '%s BUY EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
-                        (order.data._name,
+                         (order.data._name,
                         order.executed.price,
                         order.executed.value,
                         order.executed.comm))
@@ -173,21 +176,27 @@ class TestStrategy(bt.Strategy):
         return len(self)
     
     def next(self):
-        # Warm-up RSI for rsi_warmup_in_days
-        if self.days_in_buffer() < rsi_warmup_in_days:
-            return
         for data in self.datas:
+            # Warm-up RSI for rsi_warmup_in_days
+            if self.days_in_buffer() < rsi_warmup_in_days:
+                return
             # Simply log the closing price of the series from the reference
             pnl_perc = 0
             if self.getposition(data):
                 pnl_perc = 1 - (self.getposition(data).price / data.close[0]) 
-            if True or not self.trade_today_mode() or self.datas[0].datetime.date(0) == self.single_date_to_trade:
-                if self.rsi[data._name][0] > self.rsi_ma[data._name][0] and self.rsi[data._name][-1] < self.rsi_ma[data._name][-1]:
-                    rsi_crossover_signal = "*"
-                else:
-                    rsi_crossover_signal = " "
-                self.log('%s Close: %.2f, %sRSI: %.2f, RSI-MA: %.2f, Position: %.2f, PNL: %.2f%%' 
-                        % (data._name, data.close[0], rsi_crossover_signal, self.rsi[data._name][0], self.rsi_ma[data._name][0], self.getposition(data).price, pnl_perc*100))
+            if self.rsi[data._name][0] > self.rsi_ma[data._name][0] and self.rsi[data._name][-1] < self.rsi_ma[data._name][-1]:
+                rsi_crossover_signal = "*"
+            else:
+                rsi_crossover_signal = " "
+            next_context = (
+                f'{data._name} Close: {data.close[0]:.2f}, '
+                f'{rsi_crossover_signal}RSI: {self.rsi[data._name][0]:.2f}, '
+                f'RSI-MA: {self.rsi_ma[data._name][0]:.2f}, '
+                f'Position: {self.getposition(data).price:.2f}, '
+                f'PNL: {pnl_perc * 100:.2f}%'
+            )
+            self.next_context[data._name].append(str(self.datas[0].datetime.date(0)) + " " + next_context)
+            self.log(next_context)
 
             # Check if an order is pending ... if yes, we cannot send a 2nd one
             if self.order[data._name]:
@@ -206,6 +215,7 @@ class TestStrategy(bt.Strategy):
                     self.log(f'{data._name} BUY CREATE, {data.close[0]:.2f}')
                     # Buy dollar ammount
                     self.order[data._name] = self.buy(data=data, size=float(self.params.fixed_investment_amount / data.close[0]))
+                    buy_action.context = self.next_context[data._name][-trade_action_context_size:]
                     self.trade_actions.append(buy_action)
             else:
                 # TODO: Sell when RSI crosses over RSI-based-MA comming down above RSI 60, or when position showing 10% loss
@@ -215,6 +225,7 @@ class TestStrategy(bt.Strategy):
                     self.log('%s SELL CREATE, %.2f' % (data._name, data.close[0]))
                     # Sell position
                     self.order[data._name] = self.sell(data = data, size = self.getposition(data).size)
+                    sell_action.context = self.next_context[data._name][-trade_action_context_size:]
                     self.trade_actions.append(sell_action)
 
     def stop(self):
@@ -226,48 +237,53 @@ class TestStrategy(bt.Strategy):
         if self.params.custom_callback is not None:
             self.params.custom_callback(self)
             
-            
-def trades_today(tickers, todays_date_str, open_positions=None):
-    initial_cash = 30000
-    
-    # end_date is the supplied date in today_data_str
-    end_date = (datetime.datetime.strptime(todays_date_str, "%Y-%m-%d") + datetime.timedelta(days=1)).date()
-    number_of_weeks_to_observe = 2
-    if open_positions:
-        start_date = open_positions[0].date - datetime.timedelta(weeks = rsi_warmup_in_weeks + number_of_weeks_to_observe)
-    else:
-        start_date = end_date - datetime.timedelta(weeks = rsi_warmup_in_weeks + number_of_weeks_to_observe)
+class TradesToday:
+    def __init__(self, tickers, todays_date_str, open_positions=None):
+        self.todays_date_str = todays_date_str
+        self.open_positions = open_positions
         
-    if start_date > end_date:
-        print(f"ERROR start_date={start_date} < end_date={end_date}")
-        return []
-    tickers_list = tickers.split(',')
-    # Create a cerebro entity
-    cerebro = bt.Cerebro()
+        self.initial_cash = 30000
+        # end_date is the supplied date in today_data_str
+        self.end_date = (datetime.datetime.strptime(todays_date_str, "%Y-%m-%d") + datetime.timedelta(days=1)).date()
+        number_of_weeks_to_observe = 2
+        if open_positions:
+            self.start_date = open_positions[0].date - datetime.timedelta(weeks = rsi_warmup_in_weeks + number_of_weeks_to_observe)
+        else:
+            self.start_date = self.end_date - datetime.timedelta(weeks = rsi_warmup_in_weeks + number_of_weeks_to_observe)
+        if self.start_date > self.end_date:
+            print(f"ERROR start_date={self.start_date} < end_date={self.end_date}")
+        self.tickers_list = tickers.split(',')
 
-     # Add a strategy
-    cerebro.addstrategy(TestStrategy,
-                        printlog=True,
-                        upper_rsi=60,
-                        lower_rsi=50,
-                        loss_pct_threshold = 9,
-                        fixed_investment_amount=5000,
-                        single_date_to_trade=todays_date_str,
-                        open_positions=open_positions)
+    def calculate(self):
+        # Create a cerebro entity
+        cerebro = bt.Cerebro()
+        # Add a strategy
+        cerebro.addstrategy(TestStrategy,
+                            printlog=False,
+                            upper_rsi=60,
+                            lower_rsi=50,
+                            loss_pct_threshold = 9,
+                            fixed_investment_amount=5000,
+                            single_date_to_trade=self.todays_date_str,
+                            open_positions=self.open_positions)
 
-    # Add the Data Feed to Cerebro
-    for ticker in tickers_list:
-        yahoo_data = yf.download(ticker, start_date, end_date)
-        data = bt.feeds.PandasData(dataname=yahoo_data)
-        cerebro.adddata(data=data, name=ticker)
-
-    # Set our desired cash start
-    cerebro.broker.setcash(initial_cash)
-    start_portfolio_value = cerebro.broker.getvalue()
-
-    # Run over everything
-    results = cerebro.run()
+        # Add the Data Feed to Cerebro
+        for ticker in self.tickers_list:
+            yahoo_data = yf.download(ticker, self.start_date, self.end_date)
+            data = bt.feeds.PandasData(dataname=yahoo_data)
+            cerebro.adddata(data=data, name=ticker)
+        # Set our desired cash start
+        cerebro.broker.setcash(self.initial_cash)
+        # Run over everything
+        cerebro.run()
+        # TODO: test this will return actions for 2 tickers in the same day
+        self.strategy = cerebro.runstrats[0][0]
+        return cerebro.runstrats[0][0].trade_actions
     
-    # TODO: test this will return actions for 2 tickers in the same day
-    return cerebro.runstrats[0][0].trade_actions
+    def get_context(self, ticker, num_lines=trade_action_context_size):
+        return self.strategy.next_context[ticker][-num_lines:]
     
+    def get_strategy(self):
+        return self.strategy
+        
+        

@@ -38,12 +38,12 @@ make setup
 Given comma separated TICKERS, get trading advice for today 
 
 ```sh
-python runtime/api/cli.py trade-today AAPL,MSFT
+python runtime/api/cli.py trade-today SNOW
 ```
 
 Mock today's date as follows 
 ```sh
-python runtime/api/cli.py trade-today AAPL,MSFT --date=2024-06-30
+python runtime/api/cli.py trade-today SNOW --today=2024-05-31
 ```
 
 # Interactive usage
