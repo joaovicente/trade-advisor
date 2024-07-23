@@ -4,12 +4,14 @@ from __future__ import (absolute_import, division, print_function,
 import datetime  # For datetime objects
 import backtrader as bt
 import yfinance as yf
+from api.models.stock_daily_stats import StockDailyStats
 from api.models.trade_action import TradeAction
 
 rsi_warmup_in_weeks = 24
 rsi_warmup_in_days = rsi_warmup_in_weeks * 5 # 5 market-active days per week
 
 trade_action_context_size = 5
+default_daily_stats_returned = trade_action_context_size
 
 # Create a Stratey
 class TestStrategy(bt.Strategy):
@@ -40,12 +42,12 @@ class TestStrategy(bt.Strategy):
         else:
             self.single_date_to_trade = None
         
-        # To keep track of pending orders and buy price/commission
+        # The attributes below are stored as dictionaries keyed by ticker name (e.g. AMZN)
         self.order = {data._name: None for data in self.datas}
         self.buyprice = {data._name: None for data in self.datas}
         self.buycomm = {data._name: None for data in self.datas}
         self.last_bought_order_date = {data._name: None for data in self.datas}
-        self.next_context = {data._name: [] for data in self.datas}
+        self.stock_daily_stats_list = {data._name: [] for data in self.datas}
             
         # Add the RSI indicator
         self.rsi = {data._name: bt.indicators.RSI(data,plot=True) for data in self.datas}
@@ -184,19 +186,17 @@ class TestStrategy(bt.Strategy):
             pnl_perc = 0
             if self.getposition(data):
                 pnl_perc = 1 - (self.getposition(data).price / data.close[0]) 
-            if self.rsi[data._name][0] > self.rsi_ma[data._name][0] and self.rsi[data._name][-1] < self.rsi_ma[data._name][-1]:
-                rsi_crossover_signal = "*"
-            else:
-                rsi_crossover_signal = " "
-            next_context = (
-                f'{data._name} Close: {data.close[0]:.2f}, '
-                f'{rsi_crossover_signal}RSI: {self.rsi[data._name][0]:.2f}, '
-                f'RSI-MA: {self.rsi_ma[data._name][0]:.2f}, '
-                f'Position: {self.getposition(data).price:.2f}, '
-                f'PNL: {pnl_perc * 100:.2f}%'
-            )
-            self.next_context[data._name].append(str(self.datas[0].datetime.date(0)) + " " + next_context)
-            self.log(next_context)
+            rsi_crossover_signal = self.rsi[data._name][0] > self.rsi_ma[data._name][0] and self.rsi[data._name][-1] < self.rsi_ma[data._name][-1]
+            stock_stats = StockDailyStats(date=str(self.datas[0].datetime.date(0)), 
+                                          ticker = data._name, 
+                                          close = round(data.close[0], 2), 
+                                          rsi = round(self.rsi[data._name][0], 2), 
+                                          rsi_ma = round(self.rsi_ma[data._name][0], 2),
+                                          rsi_crossover_signal = rsi_crossover_signal,
+                                          position = round(self.getposition(data).price, 2), 
+                                          pnl_pct = round(pnl_perc * 100,2))
+            self.stock_daily_stats_list[data._name].append(stock_stats)
+            self.log(stock_stats.as_text())
 
             # Check if an order is pending ... if yes, we cannot send a 2nd one
             if self.order[data._name]:
@@ -215,7 +215,7 @@ class TestStrategy(bt.Strategy):
                     self.log(f'{data._name} BUY CREATE, {data.close[0]:.2f}')
                     # Buy dollar ammount
                     self.order[data._name] = self.buy(data=data, size=float(self.params.fixed_investment_amount / data.close[0]))
-                    buy_action.context = self.next_context[data._name][-trade_action_context_size:]
+                    buy_action.context = [s.as_text() for s in self.stock_daily_stats_list[data._name][-trade_action_context_size:]]
                     self.trade_actions.append(buy_action)
             else:
                 # TODO: Sell when RSI crosses over RSI-based-MA comming down above RSI 60, or when position showing 10% loss
@@ -225,7 +225,7 @@ class TestStrategy(bt.Strategy):
                     self.log('%s SELL CREATE, %.2f' % (data._name, data.close[0]))
                     # Sell position
                     self.order[data._name] = self.sell(data = data, size = self.getposition(data).size)
-                    sell_action.context = self.next_context[data._name][-trade_action_context_size:]
+                    sell_action.context = [s.as_text() for s in self.stock_daily_stats_list[data._name][-trade_action_context_size:]]
                     self.trade_actions.append(sell_action)
 
     def stop(self):
@@ -280,8 +280,11 @@ class TradesToday:
         self.strategy = cerebro.runstrats[0][0]
         return cerebro.runstrats[0][0].trade_actions
     
-    def get_context(self, ticker, num_lines=trade_action_context_size):
-        return self.strategy.next_context[ticker][-num_lines:]
+    def get_stock_daily_stats_list(self, ticker, num_lines=default_daily_stats_returned):
+        return self.strategy.stock_daily_stats_list[ticker][-num_lines:]
+    
+    def get_stock_daily_stats_list_as_text(self, ticker, num_lines=default_daily_stats_returned):
+        return [s.as_text() for s in self.get_stock_daily_stats_list(ticker, num_lines)]
     
     def get_strategy(self):
         return self.strategy
