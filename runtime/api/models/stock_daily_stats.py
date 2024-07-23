@@ -17,7 +17,7 @@ class StockDailyStats:
                 f"{rsi_crossover_symbol}rsi: {self.rsi:.2f}, "
                 f"rsi-ma: {self.rsi_ma:.2f}, "
                 f"position: {self.position:.2f}, "
-                f"pnl-pct:{self.pnl_pct:.2f}"
+                f"pnl-pct: {self.pnl_pct:.2f}%"
         )
         return text 
 

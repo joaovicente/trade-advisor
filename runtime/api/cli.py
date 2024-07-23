@@ -6,15 +6,16 @@ from api.services.open_position_service import OpenPositionService
 
 @click.command()
 @click.argument('tickers')
-@click.option('--today', 
+@click.option('--today', '-t',
               help='mock today\'s date for testing in yyyy-mm-dd format (e.g. --today=2024-07-14',
               default=str(datetime.datetime.today().date()))
-@click.option('--no-pos',
+@click.option('--no-pos', '-n',
               help='do not use open positions for testing', 
               is_flag=True)
-@click.option('--context',
-              help='Show the context for each ticker', 
-              is_flag=True)
+@click.option('--context', '--ctx', '-c',
+              help='Show provided number of days context for each ticker', 
+              show_default=True,
+              default=0)
 def trade_today(tickers, today, no_pos, context):
     """Advise on trades that should be made today. TICKERS provided as CSV. e.g.: AMZN,GOOG,MSFT)"""
     if no_pos:
@@ -23,15 +24,15 @@ def trade_today(tickers, today, no_pos, context):
         open_positions = OpenPositionService().get_all()
     trades_today = TradesToday(tickers, today, open_positions)
     trades = trades_today.calculate()
-    print(f"start_date={trades_today.start_date}, end_date={trades_today.end_date}")
+    #print(f"start_date={trades_today.start_date}, end_date={trades_today.end_date}")
     if trades:
         for trade in trades:
             print(trade.as_text())
     else:
-        print("No trades today")
+        print(f"No trades today ({str(datetime.datetime.today().date())})")
         if context:
             for ticker in tickers.split(','):
-                print('\n'.join(trades_today.get_context(ticker)))
+                print('\n'.join(trades_today.get_stock_daily_stats_list_as_text(ticker, context)))
             
 
 
