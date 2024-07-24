@@ -14,7 +14,7 @@ trade_action_context_size = 5
 default_daily_stats_returned = trade_action_context_size
 
 # Create a Stratey
-class TestStrategy(bt.Strategy):
+class BacktraderStrategy(bt.Strategy):
     params = (
         ('printlog', False),
         ('upper_rsi', 60),
@@ -258,7 +258,7 @@ class TradesToday:
         # Create a cerebro entity
         cerebro = bt.Cerebro()
         # Add a strategy
-        cerebro.addstrategy(TestStrategy,
+        cerebro.addstrategy(BacktraderStrategy,
                             printlog=False,
                             upper_rsi=60,
                             lower_rsi=50,

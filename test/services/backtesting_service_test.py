@@ -1,11 +1,9 @@
 from api.models.open_position import OpenPosition
 from api.services.backtesting_service import TradesToday
 from datetime import datetime
+from test.utils import *
 
 trade_action_context_size = 5
-
-def parse_date(date_string):
-    return (datetime.strptime(date_string, "%Y-%m-%d")).date()
 
 def test_trade_today_sell_single_open_position():
     ticker = "SNOW"
