@@ -3,18 +3,15 @@ from __future__ import (absolute_import, division, print_function,
 
 import datetime  # For datetime objects
 import backtrader as bt
-import yfinance as yf
 from api.models.stock_daily_stats import StockDailyStats
 from api.models.trade_action import TradeAction
 
-rsi_warmup_in_weeks = 24
-rsi_warmup_in_days = rsi_warmup_in_weeks * 5 # 5 market-active days per week
 
-trade_action_context_size = 5
-default_daily_stats_returned = trade_action_context_size
-
-# Create a Stratey
+# Create a Strategy
 class BacktraderStrategy(bt.Strategy):
+    TRADE_ACTION_CONTEXT_SIZE = 5
+    RSI_WARMUP_IN_WEEKS = 24
+    RSI_WARMUP_IN_DAYS = RSI_WARMUP_IN_WEEKS * 5 # 5 market-active days per week
     params = (
         ('printlog', False),
         ('upper_rsi', 60),
@@ -180,7 +177,7 @@ class BacktraderStrategy(bt.Strategy):
     def next(self):
         for data in self.datas:
             # Warm-up RSI for rsi_warmup_in_days
-            if self.days_in_buffer() < rsi_warmup_in_days:
+            if self.days_in_buffer() < BacktraderStrategy.RSI_WARMUP_IN_DAYS:
                 return
             # Simply log the closing price of the series from the reference
             pnl_perc = 0
@@ -196,7 +193,7 @@ class BacktraderStrategy(bt.Strategy):
                                           position = round(self.getposition(data).price, 2), 
                                           pnl_pct = round(pnl_perc * 100,2))
             self.stock_daily_stats_list[data._name].append(stock_stats)
-            self.log(stock_stats.as_text())
+            self.log(stock_stats.as_text(include_date=False))
 
             # Check if an order is pending ... if yes, we cannot send a 2nd one
             if self.order[data._name]:
@@ -215,7 +212,7 @@ class BacktraderStrategy(bt.Strategy):
                     self.log(f'{data._name} BUY CREATE, {data.close[0]:.2f}')
                     # Buy dollar ammount
                     self.order[data._name] = self.buy(data=data, size=float(self.params.fixed_investment_amount / data.close[0]))
-                    buy_action.context = [s.as_text() for s in self.stock_daily_stats_list[data._name][-trade_action_context_size:]]
+                    buy_action.context = [s.as_text() for s in self.stock_daily_stats_list[data._name][-BacktraderStrategy.TRADE_ACTION_CONTEXT_SIZE:]]
                     self.trade_actions.append(buy_action)
             else:
                 # TODO: Sell when RSI crosses over RSI-based-MA comming down above RSI 60, or when position showing 10% loss
@@ -225,7 +222,7 @@ class BacktraderStrategy(bt.Strategy):
                     self.log('%s SELL CREATE, %.2f' % (data._name, data.close[0]))
                     # Sell position
                     self.order[data._name] = self.sell(data = data, size = self.getposition(data).size)
-                    sell_action.context = [s.as_text() for s in self.stock_daily_stats_list[data._name][-trade_action_context_size:]]
+                    sell_action.context = [s.as_text() for s in self.stock_daily_stats_list[data._name][-BacktraderStrategy.TRADE_ACTION_CONTEXT_SIZE:]]
                     self.trade_actions.append(sell_action)
 
     def stop(self):
@@ -236,57 +233,7 @@ class BacktraderStrategy(bt.Strategy):
                     f'End portfolio value: {round(self.broker.getvalue())}')
         if self.params.custom_callback is not None:
             self.params.custom_callback(self)
+
             
-class TradesToday:
-    def __init__(self, tickers, todays_date_str, open_positions=None):
-        self.todays_date_str = todays_date_str
-        self.open_positions = open_positions
-        
-        self.initial_cash = 30000
-        # end_date is the supplied date in today_data_str
-        self.end_date = (datetime.datetime.strptime(todays_date_str, "%Y-%m-%d") + datetime.timedelta(days=1)).date()
-        number_of_weeks_to_observe = 2
-        if open_positions:
-            self.start_date = open_positions[0].date - datetime.timedelta(weeks = rsi_warmup_in_weeks + number_of_weeks_to_observe)
-        else:
-            self.start_date = self.end_date - datetime.timedelta(weeks = rsi_warmup_in_weeks + number_of_weeks_to_observe)
-        if self.start_date > self.end_date:
-            print(f"ERROR start_date={self.start_date} < end_date={self.end_date}")
-        self.tickers_list = tickers.split(',')
-
-    def calculate(self):
-        # Create a cerebro entity
-        cerebro = bt.Cerebro()
-        # Add a strategy
-        cerebro.addstrategy(BacktraderStrategy,
-                            printlog=False,
-                            upper_rsi=60,
-                            lower_rsi=50,
-                            loss_pct_threshold = 9,
-                            fixed_investment_amount=5000,
-                            single_date_to_trade=self.todays_date_str,
-                            open_positions=self.open_positions)
-
-        # Add the Data Feed to Cerebro
-        for ticker in self.tickers_list:
-            yahoo_data = yf.download(ticker, self.start_date, self.end_date)
-            data = bt.feeds.PandasData(dataname=yahoo_data)
-            cerebro.adddata(data=data, name=ticker)
-        # Set our desired cash start
-        cerebro.broker.setcash(self.initial_cash)
-        # Run over everything
-        cerebro.run()
-        # TODO: test this will return actions for 2 tickers in the same day
-        self.strategy = cerebro.runstrats[0][0]
-        return cerebro.runstrats[0][0].trade_actions
-    
-    def get_stock_daily_stats_list(self, ticker, num_lines=default_daily_stats_returned):
-        return self.strategy.stock_daily_stats_list[ticker][-num_lines:]
-    
-    def get_stock_daily_stats_list_as_text(self, ticker, num_lines=default_daily_stats_returned):
-        return [s.as_text() for s in self.get_stock_daily_stats_list(ticker, num_lines)]
-    
-    def get_strategy(self):
-        return self.strategy
         
         

@@ -1,9 +1,10 @@
 from api.models.open_position import OpenPosition
-from api.services.backtesting_service import TradesToday
+from api.services.stock_compute_service import StockComputeService
+from api.services.backtesting_service import BacktraderStrategy
 from datetime import datetime
 from test.utils import *
 
-trade_action_context_size = 5
+trade_action_context_size = BacktraderStrategy.TRADE_ACTION_CONTEXT_SIZE
 
 def test_trade_today_sell_single_open_position():
     ticker = "SNOW"
@@ -22,7 +23,7 @@ def test_trade_today_sell_single_open_position():
     #2024-05-31, SNOW Maximum tolerated loss reached (9.00%) Selling with 11.32% loss.
     #2024-05-31, SNOW SELL CREATE, 136.18
     expected_sell_date = "2024-05-31"
-    actions = TradesToday(ticker, expected_sell_date, open_positions).calculate()
+    actions = StockComputeService(ticker, expected_sell_date, open_positions).trades_today()
     # Expect sell action is returned
     assert len(actions) == 1
     assert actions[0].date == expected_sell_date
@@ -38,7 +39,7 @@ def test_trade_today_sell_multiple_open_positions():
         OpenPosition(date=parse_date("2024-04-09"), ticker='SNOW', size=32.1377968, price=155.58)
     ]   
     expected_sell_date = "2024-05-31"
-    actions = TradesToday(ticker, expected_sell_date, open_positions).calculate()
+    actions = StockComputeService(ticker, expected_sell_date, open_positions).trades_today()
     # Expect sell action is returned
     assert len(actions) == 1
     assert actions[0].date == expected_sell_date
@@ -49,7 +50,7 @@ def test_trade_today_sell_multiple_open_positions():
 def test_trade_today_buy_without_open_positions():
     date = "2024-05-06"
     ticker = "META"
-    actions = TradesToday(ticker, date).calculate()
+    actions = StockComputeService(ticker, date).trades_today()
     assert len(actions) == 1
     assert actions[0].date == date
     assert actions[0].action == "BUY"
@@ -70,11 +71,10 @@ def test_trade_today_rsi_calculation_bug():
    
     scenarios = {'pos': None, 'no_pos': None}
      
-    scenarios['pos'] = TradesToday(ticker, date_today, open_positions)
-    scenarios['no_pos'] = TradesToday(ticker, date_today)
+    scenarios['pos'] = StockComputeService(ticker, date_today, open_positions)
+    scenarios['no_pos'] = StockComputeService(ticker, date_today)
    
     for scenario in list(scenarios.keys()):
-        actions = scenarios[scenario].calculate()
         print(f'{scenario}:')
         print(f"start_date={scenarios[scenario].start_date}, end_date={scenarios[scenario].end_date}")
         print('\n'.join(scenarios[scenario].get_stock_daily_stats_list_as_text(ticker)))

@@ -1,6 +1,6 @@
 import click
 import datetime
-from api.services.backtesting_service import TradesToday
+from api.services.stock_compute_service import StockComputeService
 from api.services.open_position_service import OpenPositionService
 
 
@@ -22,8 +22,8 @@ def trade_today(tickers, today, no_pos, context):
         open_positions = []
     else:
         open_positions = OpenPositionService().get_all()
-    trades_today = TradesToday(tickers, today, open_positions)
-    trades = trades_today.calculate()
+    scmp = StockComputeService(tickers, today, open_positions)
+    trades = scmp.trades_today()
     #print(f"start_date={trades_today.start_date}, end_date={trades_today.end_date}")
     if trades:
         for trade in trades:
@@ -32,7 +32,7 @@ def trade_today(tickers, today, no_pos, context):
         print(f"No trades today ({str(datetime.datetime.today().date())})")
         if context:
             for ticker in tickers.split(','):
-                print('\n'.join(trades_today.get_stock_daily_stats_list_as_text(ticker, context)))
+                print('\n'.join(scmp.get_stock_daily_stats_list_as_text(ticker, context)))
             
 
 
