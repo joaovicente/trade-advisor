@@ -2,7 +2,7 @@ import os
 import datetime
 from test.conftest import abspath
 
-from api.repositories.open_position_repository import OpenPositionRepository
+from repositories.open_position_repository import OpenPositionRepository
 
 def test_open_position_repository():
     path = os.path.join(abspath, "data", "open_position.csv")

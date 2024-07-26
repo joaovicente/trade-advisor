@@ -3,8 +3,8 @@ from __future__ import (absolute_import, division, print_function,
 
 import datetime  # For datetime objects
 import backtrader as bt
-from api.models.stock_daily_stats import StockDailyStats
-from api.models.trade_action import TradeAction
+from models.stock_daily_stats import StockDailyStats
+from models.trade_action import TradeAction
 
 
 # Create a Strategy

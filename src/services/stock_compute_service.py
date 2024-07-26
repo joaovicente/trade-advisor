@@ -1,4 +1,4 @@
-from api.services.backtesting_service import BacktraderStrategy
+from services.backtesting_service import BacktraderStrategy
 
 import backtrader as bt
 import yfinance as yf

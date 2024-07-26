@@ -1,6 +1,6 @@
-from api.models.open_position import OpenPosition
-from api.services.stock_compute_service import StockComputeService
-from api.services.backtesting_service import BacktraderStrategy
+from models.open_position import OpenPosition
+from services.stock_compute_service import StockComputeService
+from services.backtesting_service import BacktraderStrategy
 from datetime import datetime
 from test.utils import *
 

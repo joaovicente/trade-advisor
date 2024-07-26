@@ -1,8 +1,6 @@
 
-from api.cli import trade_today
-from api.models.open_position import OpenPosition
-from api.services.open_position_service import OpenPositionService
-from api.services.stock_compute_service import StockComputeService
+from models.open_position import OpenPosition
+from services.stock_compute_service import StockComputeService
 from test.utils import *
 
 def test_trade_today_with_open_position():

@@ -33,23 +33,29 @@ make setup
 
 # CLI usage
 
+First setup virtual environment and path
+```sh
+source .env
+source .venv/bin/activate
+```
+
 ## Advise what trades to make today
 
 Given comma separated TICKERS, get trading advice for today 
 
 ```sh
-python runtime/api/cli.py trade-today SNOW
+python src/cli/cli.py trade-today SNOW
 ```
 
 Mock today's date as follows 
 ```sh
-python runtime/api/cli.py trade-today SNOW --today=2024-05-31
+python src/cli/cli.py trade-today SNOW --today=2024-05-31
 ```
 
 # Interactive usage
 Start in interactive mode
 ```sh
-python runtime/api/interactive.py
+python src/cli/interactive.py
 ```
 
 Type commands as you would using CLI

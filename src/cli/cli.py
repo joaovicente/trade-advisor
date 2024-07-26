@@ -1,7 +1,7 @@
 import click
 import datetime
-from api.services.stock_compute_service import StockComputeService
-from api.services.open_position_service import OpenPositionService
+from services.stock_compute_service import StockComputeService
+from services.open_position_service import OpenPositionService
 
 
 @click.command()

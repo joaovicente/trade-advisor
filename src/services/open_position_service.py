@@ -1,5 +1,5 @@
 import os
-from api.repositories.open_position_repository import OpenPositionRepository
+from repositories.open_position_repository import OpenPositionRepository
 
 class OpenPositionService:
     def __init__(self):

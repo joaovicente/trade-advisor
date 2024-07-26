@@ -1,6 +1,6 @@
 import duckdb
 
-from api.models.open_position import OpenPosition
+from models.open_position import OpenPosition
 
 # TODO: make the following class generic to support other models
 class OpenPositionRepository:
