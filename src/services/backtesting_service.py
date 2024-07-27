@@ -3,8 +3,8 @@ from __future__ import (absolute_import, division, print_function,
 
 import datetime  # For datetime objects
 import backtrader as bt
-from models.stock_daily_stats import StockDailyStats
-from models.trade_action import TradeAction
+from schemas.stock_daily_stats import StockDailyStats
+from schemas.trade_action import TradeAction
 
 
 # Create a Strategy
@@ -107,7 +107,7 @@ class BacktraderStrategy(bt.Strategy):
         else:
             buy = rsi_below_lower_threshold and rsi_crossed_above_rsi_ma and is_todays_date
         if buy:
-            buy_action = TradeAction(str(self.datas[0].datetime.date(0)), "BUY", name, None)
+            buy_action = TradeAction(date=self.datas[0].datetime.date(0), action="BUY", ticker=name)
             buy_action.reason = f"{name} RSI: {self.rsi[name][0]:.2f} (yesterday={self.rsi[name][-1]:.2f}) above RSI-MA {self.rsi_ma[name][0]:.2f} under RSI < {self.params.lower_rsi:.2f} threshold"
         return buy_action
        
@@ -135,7 +135,7 @@ class BacktraderStrategy(bt.Strategy):
         return peak_price
     
     def sell_action(self, name):
-        sell_action = TradeAction(str(self.datas[0].datetime.date(0)), "SELL", name, None)
+        sell_action = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
         # Sell when RSI crosses over RSI-based-MA coming down above RSI 60, or when position showing 10% loss
         data = self.getdatabyname(name)
         reached_maximum_tolerated_loss = False

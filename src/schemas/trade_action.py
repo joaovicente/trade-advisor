@@ -1,11 +1,13 @@
 
-class TradeAction:
-    def __init__(self, date, action, ticker, reason=None, context=None):
-        self.date = date
-        self.action = action
-        self.ticker = ticker
-        self.reason = reason
-        self.context = context
+from pydantic import BaseModel
+from datetime import date
+
+class TradeAction(BaseModel):
+    date: date
+    action: str
+    ticker: str
+    reason : str = None
+    context : str = None
 
     def as_text(self):
         text = f"{self.date} {self.action} {self.ticker} because {self.reason}\n"

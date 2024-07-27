@@ -1,18 +1,19 @@
-class StockDailyStats:
-    def __init__(self, date, ticker, close, rsi, rsi_ma, rsi_crossover_signal, position, pnl_pct):
-        self.date = date
-        self.ticker = ticker
-        self.close = close
-        self.rsi = rsi
-        self.rsi_ma = rsi_ma
-        self.rsi_crossover_signal = rsi_crossover_signal
-        self.position = position
-        self.pnl_pct = pnl_pct
+from pydantic import BaseModel
+from datetime import date
+class StockDailyStats(BaseModel):
+    date: date
+    ticker: str
+    close: float
+    rsi: float
+    rsi_ma: float
+    rsi_crossover_signal: bool
+    position: float
+    pnl_pct: float
 
-    def  as_text(self, include_date=True):
+    def as_text(self, include_date=True):
         rsi_crossover_symbol = "*" if self.rsi_crossover_signal else " "
         text = (f"{self.ticker}, "
-                f"close: {str(round(self.close, 2)):>6}, "
+                f"close: {round(self.close, 2):7.2f}, "
                 f"{rsi_crossover_symbol}rsi: {self.rsi:.2f}, "
                 f"rsi-ma: {self.rsi_ma:.2f}, "
                 f"position: {self.position:.2f}, "

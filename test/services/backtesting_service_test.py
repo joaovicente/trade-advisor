@@ -26,7 +26,7 @@ def test_trade_today_sell_single_open_position():
     actions = StockComputeService(ticker, expected_sell_date, open_positions).trades_today()
     # Expect sell action is returned
     assert len(actions) == 1
-    assert actions[0].date == expected_sell_date
+    assert actions[0].date == parse_date(expected_sell_date)
     assert actions[0].action == "SELL"
     assert actions[0].ticker == ticker
     assert actions[0].reason == 'SNOW Maximum tolerated loss reached 9.00% Selling with 11.32% loss'
@@ -42,7 +42,7 @@ def test_trade_today_sell_multiple_open_positions():
     actions = StockComputeService(ticker, expected_sell_date, open_positions).trades_today()
     # Expect sell action is returned
     assert len(actions) == 1
-    assert actions[0].date == expected_sell_date
+    assert actions[0].date == parse_date(expected_sell_date)
     assert actions[0].action == "SELL"
     assert actions[0].ticker == 'SNOW'
     assert len(actions[0].context) == trade_action_context_size
@@ -52,7 +52,7 @@ def test_trade_today_buy_without_open_positions():
     ticker = "META"
     actions = StockComputeService(ticker, date).trades_today()
     assert len(actions) == 1
-    assert actions[0].date == date
+    assert actions[0].date == parse_date(date)
     assert actions[0].action == "BUY"
     assert actions[0].ticker == ticker
     #'META RSI: 46.91 (yesterday=40.79) above RSI-MA 46.69 under RSI < 50.00 threshold'
