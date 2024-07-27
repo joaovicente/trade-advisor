@@ -7,9 +7,9 @@ from services.open_position_service import OpenPositionService
 @click.command()
 @click.option('--tickers','-t',
               help='TICKERS provided as CSV. e.g.: AMZN,GOOG,MSFT)',
-              default=','.join(OpenPositionService().get_distinct_tickers_list()))
+              default=None)
 @click.option('--today',
-              help='mock today\'s date for testing in yyyy-mm-dd format (e.g. --today=2024-07-14',
+              help='mock today\'s date for testing in yyyy-mm-dd format (e.g. --today=2024-07-14)',
               default=str(datetime.datetime.today().date()))
 @click.option('--no-pos', '-n',
               help='do not use open positions for testing', 
@@ -19,11 +19,22 @@ from services.open_position_service import OpenPositionService
               show_default=True,
               default=0)
 def trade_today(tickers, today, no_pos, context):
-    """Advise on trades that should be made today. """
+    """Advise on trades that should be made today"""
     if no_pos:
         open_positions = []
+        # use only supplied tickers
+        if tickers is None:
+            raise click.UsageError("tickers must be supplied when not using open positions")
     else:
         open_positions = OpenPositionService().get_all()
+        # add open positions to any supplied tickers
+        position_ticker_list = OpenPositionService().get_distinct_tickers_list()
+        # add supplied tickers
+        if tickers is None:
+           tickers = ','.join(position_ticker_list)
+        else:
+           supplied_ticker_list = tickers.split(',')
+           tickers = ','.join(list(set(position_ticker_list + supplied_ticker_list)))
     scmp = StockComputeService(tickers, today, open_positions)
     trades = scmp.trades_today()
     #print(f"start_date={trades_today.start_date}, end_date={trades_today.end_date}")
