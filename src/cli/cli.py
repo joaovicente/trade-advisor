@@ -5,8 +5,10 @@ from services.open_position_service import OpenPositionService
 
 
 @click.command()
-@click.argument('tickers')
-@click.option('--today', '-t',
+@click.option('--tickers','-t',
+              help='TICKERS provided as CSV. e.g.: AMZN,GOOG,MSFT)',
+              default=','.join(OpenPositionService().get_distinct_tickers_list()))
+@click.option('--today',
               help='mock today\'s date for testing in yyyy-mm-dd format (e.g. --today=2024-07-14',
               default=str(datetime.datetime.today().date()))
 @click.option('--no-pos', '-n',
@@ -17,7 +19,7 @@ from services.open_position_service import OpenPositionService
               show_default=True,
               default=0)
 def trade_today(tickers, today, no_pos, context):
-    """Advise on trades that should be made today. TICKERS provided as CSV. e.g.: AMZN,GOOG,MSFT)"""
+    """Advise on trades that should be made today. """
     if no_pos:
         open_positions = []
     else:

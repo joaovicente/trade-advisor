@@ -41,15 +41,21 @@ source .venv/bin/activate
 
 ## Advise what trades to make today
 
+By default will use open position tickers
+
+```sh
+python src/cli/cli.py trade-today
+```
+
 Given comma separated TICKERS, get trading advice for today 
 
 ```sh
-python src/cli/cli.py trade-today SNOW
+python src/cli/cli.py trade-today --tickers SNOW
 ```
 
 Mock today's date as follows 
 ```sh
-python src/cli/cli.py trade-today SNOW --today=2024-05-31
+python src/cli/cli.py trade-today --tickers SNOW --today 2024-05-31
 ```
 
 # Interactive usage

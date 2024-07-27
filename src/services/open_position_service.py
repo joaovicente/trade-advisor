@@ -9,5 +9,8 @@ class OpenPositionService:
         path = os.path.join("data", "open_position.csv")
         repo = OpenPositionRepository(path=path)
         positions = repo.get_all()
-        # print(positions)
         return positions
+    
+    def get_distinct_tickers_list(self):
+        postitions = self.get_all()
+        return list(set([position.ticker for position in postitions]))
