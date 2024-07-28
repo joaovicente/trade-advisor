@@ -93,3 +93,4 @@ portfolio-stats
 * [Backtrader](https://www.backtrader.com/docu/quickstart/quickstart/#using-the-platform) for backtesting
 * [TA-Lib](https://ta-lib.org/) and [ta-lib-python](https://github.com/ta-lib/ta-lib-python) for built-in technical analysis [indicators](https://ta-lib.org/functions/) such as RMI (Relative Strength Index)
 * [Click](https://click.palletsprojects.com) to expose CLI
+* [Data Science Cohort RSI data strategy](https://github.com/Worlddatascience/DataScienceCohort/blob/refs%2Fheads%2Fmaster/9_How_to_Backtest_a_Relative_Strength_index_Strategy%C2%B6.ipynb)
