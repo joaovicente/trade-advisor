@@ -1,3 +1,6 @@
+from typing import List
+from schemas.portfolio_stats import AssetStats, PortfolioStats, PositionStats
+from schemas.stock_daily_stats import StockDailyStats
 from services.backtesting_service import BacktraderStrategy
 
 import backtrader as bt
@@ -49,7 +52,7 @@ class StockComputeService:
     def trades_today(self):
         return self.strategy.trade_actions
 
-    def get_stock_daily_stats_list(self, ticker, num_lines=DEFAULT_DAILY_STATS_RETURNED):
+    def get_stock_daily_stats_list(self, ticker, num_lines=DEFAULT_DAILY_STATS_RETURNED) -> List[StockDailyStats]:
         return self.strategy.stock_daily_stats_list[ticker][-num_lines:]
 
     def get_stock_daily_stats_list_as_text(self, ticker, num_lines=DEFAULT_DAILY_STATS_RETURNED):
@@ -57,3 +60,52 @@ class StockComputeService:
 
     def get_strategy(self):
         return self.strategy
+    
+    def portfolio_stats(self) -> PortfolioStats:
+        # compute portfolio statistics
+        position_stats_list = []
+        asset_stats_list = []
+        portfolio_stats = None
+        total_invested = 0
+        for open_position in self.open_positions:
+            # compute PositionStats from open_position and StockDailyStats
+            stock_daily_stats = self.get_stock_daily_stats_list(open_position.ticker, 1)[-1]
+            amount = open_position.size * open_position.price
+            value = open_position.size * stock_daily_stats.close
+            total_invested += amount
+            position_stats = PositionStats(
+                ticker = stock_daily_stats.ticker,
+                date = stock_daily_stats.date,
+                units = open_position.size,
+                open = open_position.price,
+                amount = amount,
+                value = value,
+                pnl = amount - value,
+                pnl_pct = (value - amount) / amount * 100
+            )
+            position_stats_list.append(position_stats)
+            # compute AssetStats (same as PositionStats if only one position per ticker)
+            asset_stats = AssetStats(
+                ticker = stock_daily_stats.ticker,
+                price = stock_daily_stats.close,
+                units = open_position.size,
+                num_positions = 1, # TODO: P2 Support multiple positions per ticker
+                amount = amount,
+                value = value,
+                pnl = value - amount,
+                pnl_pct =  (value - amount) / amount * 100
+            )
+            asset_stats_list.append(asset_stats)
+            
+        # calculate portfolio stats
+        portfolio_value = 0
+        for asset_stats in asset_stats_list:
+            portfolio_value += asset_stats.value
+        portfolio_stats = PortfolioStats(
+            total_invested = total_invested, 
+            pnl = portfolio_value - total_invested,
+            pnl_pct = (portfolio_value - total_invested) / total_invested * 100,
+            portfolio_value = portfolio_value,
+            asset_stats_list = asset_stats_list, 
+            position_stats_list  = position_stats_list)
+        return portfolio_stats

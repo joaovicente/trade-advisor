@@ -47,6 +47,24 @@ def trade_today(tickers, today, no_pos, context):
             for ticker in tickers.split(','):
                 print('\n'.join(scmp.get_stock_daily_stats_list_as_text(ticker, context)))
             
+@click.command()
+@click.option('--today',
+              help='mock today\'s date for testing in yyyy-mm-dd format (e.g. --today=2024-07-14)',
+              default=str(datetime.datetime.today().date()))
+def portfolio_stats(today):
+    """Show portfolio statistics"""
+    open_positions = OpenPositionService().get_all()
+    # add open positions to any supplied tickers
+    position_ticker_list = OpenPositionService().get_distinct_tickers_list()
+    # add supplied tickers
+    tickers = ','.join(position_ticker_list)
+    scmp = StockComputeService(tickers, today, open_positions)
+    portfolio_stats = scmp.portfolio_stats()
+    
+    print(f"Portfolio on {str(datetime.datetime.today().date())}: {portfolio_stats.portfolio_as_text()}")
+    print(portfolio_stats.assets_as_text())
+    
+    
 
 
 # Create a Click group to hold the commands
@@ -57,6 +75,7 @@ def cli():
 
 # Add the commands to the group
 cli.add_command(trade_today)
+cli.add_command(portfolio_stats)
 
 if __name__ == "__main__":
     cli()

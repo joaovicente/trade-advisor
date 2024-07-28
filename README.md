@@ -2,7 +2,7 @@
 Simplify potential stock trade analysis and decisioning using standard investment strategies and notifications
 
 ```gherkin
-Given previous stakes
+Given previous positions and list of stock to watch
 When today comes
 Then notify me if I should buy, sell or do nothing
 ```
@@ -58,6 +58,21 @@ Mock today's date as follows
 python src/cli/cli.py trade-today --tickers SNOW --today 2024-05-31
 ```
 
+## See portfolio stats
+
+```sh
+python src/cli/cli.py portfolio-stats
+```
+
+```sh
+Portfolio on 2024-07-28: total invested: 3733.45, portfolio_value: 3570.32, pnl: -163.13, pnl_pct: -4.37%
+MSFT: units: 0.53, price: 425.27, amount:   233.45, value:   226.58, pnl:  -6.87, pnl_pct:  -2.94%
+AMZN: units: 2.69, price: 182.50, amount:   500.00, value:   490.86, pnl:  -9.14, pnl_pct:  -1.83%
+META: units: 2.10, price: 465.70, amount:  1000.00, value:   976.54, pnl: -23.46, pnl_pct:  -2.35%
+GOOG: units: 5.57, price: 168.68, amount:  1000.00, value:   939.41, pnl: -60.59, pnl_pct:  -6.06%
+NVDA: units: 8.29, price: 113.06, amount:  1000.00, value:   936.94, pnl: -63.06, pnl_pct:  -6.31%
+```
+
 # Interactive usage
 Start in interactive mode
 ```sh
@@ -66,7 +81,11 @@ python src/cli/interactive.py
 
 Type commands as you would using CLI
 ```sh
-trade-today AAPL,MSFT
+trade-today
+```
+
+```sh
+portfolio-stats
 ```
 
 # References
