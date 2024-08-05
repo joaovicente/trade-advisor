@@ -6,27 +6,12 @@ import backtrader as bt
 from schemas.stock_daily_stats import StockDailyStats
 from schemas.trade_action import TradeAction
 
-
-# Create a Strategy
-class BacktraderStrategy(bt.Strategy):
+class BaseBacktraderStrategy(bt.Strategy):
+    INDICATOR_WARMUP_IN_WEEKS = 24
+    INDICATOR_WARMUP_IN_DAYS = INDICATOR_WARMUP_IN_WEEKS * 5 # 5 market-active days per week
     TRADE_ACTION_CONTEXT_SIZE = 5
-    RSI_WARMUP_IN_WEEKS = 24
-    RSI_WARMUP_IN_DAYS = RSI_WARMUP_IN_WEEKS * 5 # 5 market-active days per week
-    params = (
-        ('start_date', None),
-        ('printlog', False),
-        ('upper_rsi', 60),
-        ('lower_rsi', 50),
-        ('loss_pct_threshold', 5),
-        ('profit_protection_pct_threshold', 0), # 0 = allow profit to come down to 0%
-        ('fixed_investment_amount', 3000),
-        ('single_date_to_trade', None), # date string expected (e.g. 2023-12-31)
-        ('custom_callback', None),
-        ('open_positions', None)
-    )
-
     def log(self, txt, dt=None, do_print=False):
-        ''' Logging function fot this strategy'''
+        ''' Logging function for strategy'''
         if self.params.printlog or do_print:
             dt = dt or self.datas[0].datetime.date(0)
             print('%s, %s' % (dt.isoformat(), txt))
@@ -34,26 +19,6 @@ class BacktraderStrategy(bt.Strategy):
     def trade_today_mode(self):
         return self.single_date_to_trade is not None
 
-    def __init__(self):
-        if self.params.single_date_to_trade is not None:
-            self.single_date_to_trade = datetime.datetime.strptime(self.params.single_date_to_trade, "%Y-%m-%d").date()
-        else:
-            self.single_date_to_trade = None
-        
-        # The attributes below are stored as dictionaries keyed by ticker name (e.g. AMZN)
-        self.order = {data._name: None for data in self.datas}
-        self.buyprice = {data._name: None for data in self.datas}
-        self.buycomm = {data._name: None for data in self.datas}
-        self.last_bought_order_date = {data._name: None for data in self.datas}
-        self.stock_daily_stats_list = {data._name: [] for data in self.datas}
-            
-        # Add the RSI indicator
-        self.rsi = {data._name: bt.indicators.RSI(data,plot=True) for data in self.datas}
-        self.rsi_ma = {data._name: bt.indicators.SmoothedMovingAverage(self.rsi[data._name], period=14,plot=True) for data in self.datas}
-        
-        # Trade action list
-        self.trade_actions = []
-        
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
             # Buy/Sell order submitted/accepted to/by broker - Nothing to do
@@ -96,6 +61,57 @@ class BacktraderStrategy(bt.Strategy):
             return
         self.log('%s OPERATION PROFIT, GROSS %.2f, NET %.2f' %
                  (trade.data._name, trade.pnl, trade.pnlcomm))
+
+    def warmup_buffer(self):
+        # processing date within warmup buffer
+        return self.datas[0].datetime.date(0) < self.params.start_date
+   
+    def days_in_buffer(self):
+        return len(self)
+    
+class RsiBollingerStrategy(BaseBacktraderStrategy):
+    pass
+    # TODO: Implement strategy
+    # Buy when lower bb is crossed and rsi below 40
+    # Sell when median bb falls below its recent peak, at a magnitude of n multiplier of ATR (optimise using different multiplier values on stocks that are not so bullish)
+    # References:
+    #- https://blackwellglobal.com/the-bollinger-bands-rsi-trading-strategy/
+    #- https://github.com/Worlddatascience/DataScienceCohort/blob/refs/heads/master/8_How_to_Backtest_a_Bollinger_Bands_Strategy.ipynb
+
+class BacktraderStrategy(BaseBacktraderStrategy):
+    params = (
+        ('start_date', None),
+        ('printlog', False),
+        ('upper_rsi', 60),
+        ('lower_rsi', 50),
+        ('loss_pct_threshold', 5),
+        ('profit_protection_pct_threshold', 0), # 0 = allow profit to come down to 0%
+        ('fixed_investment_amount', 3000),
+        ('single_date_to_trade', None), # date string expected (e.g. 2023-12-31)
+        ('custom_callback', None),
+        ('open_positions', None)
+    )
+
+    def __init__(self):
+        if self.params.single_date_to_trade is not None:
+            self.single_date_to_trade = datetime.datetime.strptime(self.params.single_date_to_trade, "%Y-%m-%d").date()
+        else:
+            self.single_date_to_trade = None
+        
+        # The attributes below are stored as dictionaries keyed by ticker name (e.g. AMZN)
+        self.order = {data._name: None for data in self.datas}
+        self.buyprice = {data._name: None for data in self.datas}
+        self.buycomm = {data._name: None for data in self.datas}
+        self.last_bought_order_date = {data._name: None for data in self.datas}
+        self.stock_daily_stats_list = {data._name: [] for data in self.datas}
+            
+        # Add the RSI indicator
+        self.rsi = {data._name: bt.indicators.RSI(data,plot=True) for data in self.datas}
+        self.rsi_ma = {data._name: bt.indicators.SmoothedMovingAverage(self.rsi[data._name], period=14,plot=True) for data in self.datas}
+        
+        # Trade action list
+        self.trade_actions = []
+        
 
     def buy_action(self, name):
         buy_action = None
@@ -171,13 +187,6 @@ class BacktraderStrategy(bt.Strategy):
         else:
             return None
    
-    def warmup_buffer(self):
-        # processing date within warmup buffer
-        return self.datas[0].datetime.date(0) < self.params.start_date
-   
-    def days_in_buffer(self):
-        return len(self)
-    
     def next(self):
         for data in self.datas:
             # Warm-up RSI for rsi_warmup_in_days

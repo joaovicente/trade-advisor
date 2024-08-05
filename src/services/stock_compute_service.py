@@ -19,10 +19,10 @@ class StockComputeService:
         self.end_date = (datetime.datetime.strptime(todays_date_str, "%Y-%m-%d") + datetime.timedelta(days=1)).date()
         number_of_weeks_to_observe = 2
         if open_positions:
-            self.warmup_date = open_positions[0].date - datetime.timedelta(weeks = BacktraderStrategy.RSI_WARMUP_IN_WEEKS + number_of_weeks_to_observe)
+            self.warmup_date = open_positions[0].date - datetime.timedelta(weeks = BacktraderStrategy.INDICATOR_WARMUP_IN_WEEKS + number_of_weeks_to_observe)
             self.start_date = open_positions[0].date - datetime.timedelta(weeks = number_of_weeks_to_observe)
         else:
-            self.warmup_date = self.end_date - datetime.timedelta(weeks = BacktraderStrategy.RSI_WARMUP_IN_WEEKS + number_of_weeks_to_observe)
+            self.warmup_date = self.end_date - datetime.timedelta(weeks = BacktraderStrategy.INDICATOR_WARMUP_IN_WEEKS + number_of_weeks_to_observe)
             self.start_date = self.end_date - datetime.timedelta(weeks = number_of_weeks_to_observe)
         if self.warmup_date > self.end_date:
             print(f"ERROR start_date={self.start_date} < end_date={self.end_date}")
