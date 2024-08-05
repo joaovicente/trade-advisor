@@ -19,16 +19,19 @@ class StockComputeService:
         self.end_date = (datetime.datetime.strptime(todays_date_str, "%Y-%m-%d") + datetime.timedelta(days=1)).date()
         number_of_weeks_to_observe = 2
         if open_positions:
-            self.start_date = open_positions[0].date - datetime.timedelta(weeks = BacktraderStrategy.RSI_WARMUP_IN_WEEKS + number_of_weeks_to_observe)
+            self.warmup_date = open_positions[0].date - datetime.timedelta(weeks = BacktraderStrategy.RSI_WARMUP_IN_WEEKS + number_of_weeks_to_observe)
+            self.start_date = open_positions[0].date - datetime.timedelta(weeks = number_of_weeks_to_observe)
         else:
-            self.start_date = self.end_date - datetime.timedelta(weeks = BacktraderStrategy.RSI_WARMUP_IN_WEEKS + number_of_weeks_to_observe)
-        if self.start_date > self.end_date:
+            self.warmup_date = self.end_date - datetime.timedelta(weeks = BacktraderStrategy.RSI_WARMUP_IN_WEEKS + number_of_weeks_to_observe)
+            self.start_date = self.end_date - datetime.timedelta(weeks = number_of_weeks_to_observe)
+        if self.warmup_date > self.end_date:
             print(f"ERROR start_date={self.start_date} < end_date={self.end_date}")
         self.tickers_list = tickers.split(',')
         # Create a cerebro entity
         self.cerebro = bt.Cerebro()
         # Add a strategy
         self.cerebro.addstrategy(BacktraderStrategy,
+                            start_date = self.start_date,
                             printlog=False,
                             upper_rsi=60,
                             lower_rsi=50,
@@ -39,7 +42,7 @@ class StockComputeService:
 
         # Add the Data Feed to Cerebro
         for ticker in self.tickers_list:
-            yahoo_data = yf.download(ticker, self.start_date, self.end_date)
+            yahoo_data = yf.download(ticker, self.warmup_date, self.end_date)
             data = bt.feeds.PandasData(dataname=yahoo_data)
             self.cerebro.adddata(data=data, name=ticker)
         # Set our desired cash start

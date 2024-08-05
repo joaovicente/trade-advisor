@@ -13,6 +13,7 @@ class BacktraderStrategy(bt.Strategy):
     RSI_WARMUP_IN_WEEKS = 24
     RSI_WARMUP_IN_DAYS = RSI_WARMUP_IN_WEEKS * 5 # 5 market-active days per week
     params = (
+        ('start_date', None),
         ('printlog', False),
         ('upper_rsi', 60),
         ('lower_rsi', 50),
@@ -170,14 +171,17 @@ class BacktraderStrategy(bt.Strategy):
         else:
             return None
    
+    def warmup_buffer(self):
+        # processing date within warmup buffer
+        return self.datas[0].datetime.date(0) < self.params.start_date
+   
     def days_in_buffer(self):
-        # FIXME: This function does not work consistently for single and multiple tickers - see optimise.ipynb
         return len(self)
     
     def next(self):
         for data in self.datas:
             # Warm-up RSI for rsi_warmup_in_days
-            if self.days_in_buffer() < BacktraderStrategy.RSI_WARMUP_IN_DAYS:
+            if self.warmup_buffer():
                 return
             # Simply log the closing price of the series from the reference
             pnl_perc = 0
