@@ -70,7 +70,8 @@ class BaseBacktraderStrategy(bt.Strategy):
         return len(self)
     
 class RsiBollingerStrategy(BaseBacktraderStrategy):
-    pass
+    def __init__(self):
+        super().__init__() 
     # TODO: Implement strategy
     # Buy when lower bb is crossed and rsi below 40
     # Sell when median bb falls below its recent peak, at a magnitude of n multiplier of ATR (optimise using different multiplier values on stocks that are not so bullish)
@@ -93,6 +94,7 @@ class BacktraderStrategy(BaseBacktraderStrategy):
     )
 
     def __init__(self):
+        super().__init__() 
         if self.params.single_date_to_trade is not None:
             self.single_date_to_trade = datetime.datetime.strptime(self.params.single_date_to_trade, "%Y-%m-%d").date()
         else:
