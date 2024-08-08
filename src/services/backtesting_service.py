@@ -5,6 +5,7 @@ import datetime  # For datetime objects
 import backtrader as bt
 from schemas.stock_daily_stats import StockDailyStats
 from schemas.trade_action import TradeAction
+import matplotlib.pyplot as plt
 
 class BaseBacktraderStrategy(bt.Strategy):
     INDICATOR_WARMUP_IN_WEEKS = 24
@@ -23,8 +24,23 @@ class BaseBacktraderStrategy(bt.Strategy):
         self.last_bought_order_date = {data._name: None for data in self.datas}
         self.stock_daily_stats_list = {data._name: [] for data in self.datas}            
         # Add the RSI indicator
-        self.rsi = {data._name: bt.indicators.RSI(data,plot=True) for data in self.datas}
-        self.rsi_ma = {data._name: bt.indicators.SmoothedMovingAverage(self.rsi[data._name], period=14,plot=True) for data in self.datas}
+        self.rsi = {
+            data._name: bt.indicators.RSI(data, 
+                                          plot=True, 
+                                          plothlines=[self.params.lower_rsi,self.params.upper_rsi]) 
+            for data in self.datas}
+        self.rsi_ma = {
+            data._name: bt.indicators.SmoothedMovingAverage(self.rsi[data._name], 
+                                                            period=14,plot=True) 
+            for data in self.datas}
+        self.b_band = {
+            data._name: bt.indicators.BollingerBands(data, 
+                                                     period=20, 
+                                                     devfactor=2,
+                                                     plot=True) 
+            for data in self.datas }
+        for data in self.datas:
+            self.stock_daily_stats_list[data._name] = []
         # Trade action list
         self.trade_actions = []
         
@@ -161,15 +177,70 @@ class BaseBacktraderStrategy(bt.Strategy):
                     sell_action.context = [s.as_text() for s in self.stock_daily_stats_list[data._name][-BacktraderStrategy.TRADE_ACTION_CONTEXT_SIZE:]]
                     self.trade_actions.append(sell_action)
 class RsiBollingerStrategy(BaseBacktraderStrategy):
+    params = (
+        ('start_date', None),
+        ('printlog', False),
+        ('upper_rsi', 60),
+        ('lower_rsi', 50),
+        ('loss_pct_threshold', 5),
+        ('profit_protection_pct_threshold', 0), # 0 = allow profit to come down to 0%
+        ('fixed_investment_amount', 3000),
+        ('single_date_to_trade', None), # date string expected (e.g. 2023-12-31)
+        ('custom_callback', None),
+        ('open_positions', None)
+    )
     def __init__(self):
         super().__init__() 
-    # TODO: Implement strategy
-    # Buy when lower bb is crossed and rsi below 40
-    # Sell when median bb falls below its recent peak, at a magnitude of n multiplier of ATR (optimise using different multiplier values on stocks that are not so bullish)
-    # References:
-    #- https://blackwellglobal.com/the-bollinger-bands-rsi-trading-strategy/
-    #- https://github.com/Worlddatascience/DataScienceCohort/blob/refs/heads/master/8_How_to_Backtest_a_Bollinger_Bands_Strategy.ipynb
+        # References:
+        # https://blackwellglobal.com/the-bollinger-bands-rsi-trading-strategy/
+        # https://github.com/Worlddatascience/DataScienceCohort/blob/refs/heads/master/8_How_to_Backtest_a_Bollinger_Bands_Strategy.ipynb
 
+    def buy_action(self, name):
+        buy_action = None
+        # TODO: Buy when lower bb is crossed and rsi below 40
+        data = self.getdatabyname(name)
+        is_todays_date = self.single_date_to_trade == self.datas[0].datetime.date(0)
+        # Bollinger bottom band upwards crossover
+        buy_indication = \
+            data.close[-1] < self.b_band[name].lines.bot[-1]\
+            and data.close[0] > self.b_band[name].lines.bot[0]\
+            and self.rsi[name][0] < self.params.lower_rsi
+        # TODO: Buy when  
+        if not self.trade_today_mode():
+            buy = buy_indication
+        else:
+            buy = buy_indication and is_todays_date
+        if buy:
+            buy_action = TradeAction(date=self.datas[0].datetime.date(0), action="BUY", ticker=name)
+            buy_action.reason = f"{name} Close ({data.close[-1]},{data.close[0]}) crossover Bollinger bottom ({self.b_band[name].lines.bot[0]}) while RSI ({self.rsi[name][0]}) below {self.params.lower_rsi}"
+        return buy_action
+       
+    def sell_action(self, name):
+        sell_action = None
+        # TODO: Sell when bb-mid falls below its recent peak, at a magnitude of n multiplier of ATR (optimise using different multiplier values on stocks that are not so bullish)
+        data = self.getdatabyname(name)
+        # Nothing to sell or not current-trade-day
+        if not self.getposition(data) or \
+            (self.trade_today_mode() and self.single_date_to_trade != self.datas[0].datetime.date(0)):
+            return False
+        # Bollinger top band inflection upwards crossover (31560)
+        #elif data.close[-1] < self.b_band[name].lines.top[-1] \
+            #and data.close[0] > self.b_band[name].lines.top[0]:
+        #TODO: Avoid selling until bb-mid shows slow down
+        # Bollinger mid ^ shape (32457)
+        elif self.b_band[name].lines.mid[-2] < self.b_band[name].lines.mid[-1]\
+            and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]:
+        # Bollinger mid ^ shape re-enforced (31826)
+        #elif self.b_band[name].lines.mid[-3] < self.b_band[name].lines.mid[-2] \
+        #    and self.b_band[name].lines.mid[-2] > self.b_band[name].lines.mid[-1]\
+        #    and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]:
+            sell_action  = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
+            sell_action.reason = f"{name} Close ({data.close[-1]},{data.close[0]}) above Bollinger top ({self.b_band[name].lines.top[0]})"
+        # Bollinger bottom band downwards crossover
+        elif data.close[0] < self.b_band[name].lines.bot[0]:
+            sell_action  = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
+            sell_action.reason = f"{name} Close ({data.close[-1]},{data.close[0]}) below Bollinger bottom ({self.b_band[name].lines.bot[0]})"
+        return sell_action
 class BacktraderStrategy(BaseBacktraderStrategy):
     params = (
         ('start_date', None),
