@@ -166,6 +166,7 @@ class BaseBacktraderStrategy(bt.Strategy):
                     self.order[data._name] = self.buy(data=data, size=float(self.params.fixed_investment_amount / data.close[0]))
                     buy_action.context = [s.as_text() for s in self.stock_daily_stats_list[data._name][-BacktraderStrategy.TRADE_ACTION_CONTEXT_SIZE:]]
                     self.trade_actions.append(buy_action)
+                    print(buy_action.as_text(context=False))
             else:
                 # TODO: Sell when RSI crosses over RSI-based-MA comming down above RSI 60, or when position showing 10% loss
                 sell_action = self.sell_action(data._name)
@@ -176,6 +177,7 @@ class BaseBacktraderStrategy(bt.Strategy):
                     self.order[data._name] = self.sell(data = data, size = self.getposition(data).size)
                     sell_action.context = [s.as_text() for s in self.stock_daily_stats_list[data._name][-BacktraderStrategy.TRADE_ACTION_CONTEXT_SIZE:]]
                     self.trade_actions.append(sell_action)
+                    print(sell_action.as_text(context=False))
 class RsiBollingerStrategy(BaseBacktraderStrategy):
     params = (
         ('start_date', None),
@@ -195,26 +197,45 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
         # https://blackwellglobal.com/the-bollinger-bands-rsi-trading-strategy/
         # https://github.com/Worlddatascience/DataScienceCohort/blob/refs/heads/master/8_How_to_Backtest_a_Bollinger_Bands_Strategy.ipynb
 
-    def buy_action(self, name):
+    def buy_upon_bb_bot_upwards_crossover_with_rsi_reenforcement(self, name, data):
         buy_action = None
-        # TODO: Buy when lower bb is crossed and rsi below 40
+        if data.close[-1] < self.b_band[name].lines.bot[-1] \
+            and data.close[0] > self.b_band[name].lines.bot[0]\
+            and self.rsi[name][0] < self.params.lower_rsi: # rsi below threshold
+            buy_action = TradeAction(date=self.datas[0].datetime.date(0), action="BUY", ticker=name)
+            buy_action.reason = f"{name} Close ({data.close[-1]:.2f},{data.close[0]:.2f}) crossover Bollinger bottom ({self.b_band[name].lines.bot[0]:.2f}) while RSI ({self.rsi[name][0]:.2f}) below {self.params.lower_rsi:.2f}"
+        return buy_action
+
+    def buy_action(self, name):
+        ret_buy_action = None
+        # TODO: Buy when lower bb is crossed and 
         data = self.getdatabyname(name)
         is_todays_date = self.single_date_to_trade == self.datas[0].datetime.date(0)
         # Bollinger bottom band upwards crossover
-        buy_indication = \
-            data.close[-1] < self.b_band[name].lines.bot[-1]\
-            and data.close[0] > self.b_band[name].lines.bot[0]\
-            and self.rsi[name][0] < self.params.lower_rsi
-        # TODO: Buy when  
+        buy_action = self.buy_upon_bb_bot_upwards_crossover_with_rsi_reenforcement(name, data)
         if not self.trade_today_mode():
-            buy = buy_indication
+            buy = buy_action is not None
         else:
-            buy = buy_indication and is_todays_date
+            buy = buy_action is not None and is_todays_date
         if buy:
-            buy_action = TradeAction(date=self.datas[0].datetime.date(0), action="BUY", ticker=name)
-            buy_action.reason = f"{name} Close ({data.close[-1]},{data.close[0]}) crossover Bollinger bottom ({self.b_band[name].lines.bot[0]}) while RSI ({self.rsi[name][0]}) below {self.params.lower_rsi}"
-        return buy_action
+            ret_buy_action = buy_action
+        return ret_buy_action
+      
+    def sell_upon_bb_mid_hat_inflection(self, name, data):
+        sell_action = None
+        if self.b_band[name].lines.mid[-2] < self.b_band[name].lines.mid[-1]\
+            and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]:
+            sell_action = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
+            sell_action.reason = f"{name} Bollinger mid inflection ({self.b_band[name].lines.mid[-3]:.2f}, {self.b_band[name].lines.mid[-2]:.2f}, {self.b_band[name].lines.mid[-1]:.2f}, {self.b_band[name].lines.mid[0]:.2f})"
+        return sell_action
        
+    def sell_upon_bb_low_crossover(self, name, data):
+        sell_action = None
+        if data.close[0] < self.b_band[name].lines.bot[0]:
+            sell_action  = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
+            sell_action.reason = f"{name} Close ({data.close[-1]:.2f}, {data.close[0]:.2f}) below Bollinger bottom ({self.b_band[name].lines.bot[0]:.2f})"
+        return sell_action
+    
     def sell_action(self, name):
         sell_action = None
         # TODO: Sell when bb-mid falls below its recent peak, at a magnitude of n multiplier of ATR (optimise using different multiplier values on stocks that are not so bullish)
@@ -223,23 +244,10 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
         if not self.getposition(data) or \
             (self.trade_today_mode() and self.single_date_to_trade != self.datas[0].datetime.date(0)):
             return False
-        # Bollinger top band inflection upwards crossover (31560)
-        #elif data.close[-1] < self.b_band[name].lines.top[-1] \
-            #and data.close[0] > self.b_band[name].lines.top[0]:
-        #TODO: Avoid selling until bb-mid shows slow down
-        # Bollinger mid ^ shape (32457)
-        elif self.b_band[name].lines.mid[-2] < self.b_band[name].lines.mid[-1]\
-            and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]:
-        # Bollinger mid ^ shape re-enforced (31826)
-        #elif self.b_band[name].lines.mid[-3] < self.b_band[name].lines.mid[-2] \
-        #    and self.b_band[name].lines.mid[-2] > self.b_band[name].lines.mid[-1]\
-        #    and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]:
-            sell_action  = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
-            sell_action.reason = f"{name} Close ({data.close[-1]},{data.close[0]}) above Bollinger top ({self.b_band[name].lines.top[0]})"
-        # Bollinger bottom band downwards crossover
-        elif data.close[0] < self.b_band[name].lines.bot[0]:
-            sell_action  = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
-            sell_action.reason = f"{name} Close ({data.close[-1]},{data.close[0]}) below Bollinger bottom ({self.b_band[name].lines.bot[0]})"
+        else:
+            sell_action = self.sell_upon_bb_mid_hat_inflection(name, data)
+            if sell_action is None:
+                sell_action = self.sell_upon_bb_low_crossover(name, data)
         return sell_action
 class BacktraderStrategy(BaseBacktraderStrategy):
     params = (
