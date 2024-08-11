@@ -1,9 +1,10 @@
 
 from fake_strategy import * 
 
+name = 'X'
+
 def test_fake_line():
-    name = 'X'
-    st = FakeStrategy( name='X',
+    st = FakeStrategy( name=name,
                         rsi = [1,2,3],
                         rsi_ma = [4,5,6],
                         bb_bot=[7,8,9],
@@ -29,11 +30,20 @@ def test_fake_line():
     assert st.params.lower_rsi == 45
     
 def test_buy_upon_bb_bot_upwards_crossover_with_rsi_reenforcement():
-    name = 'X'
-    data = FakeData(close = [100, 90, 100])
-    st = FakeStrategy( name='X', 
-                        rsi = [38, 38, 38],
-                        bb_bot = [95, 95],
-                        params = {'lower_rsi': 40}
-                        )
+    close =  [100, 90, 100]
+    rsi =    [ 38, 38,  38]
+    bb_bot = [ 95, 95,  95]
+    params = {'lower_rsi': 40}
+    data = FakeData(close = close)
+    st = FakeStrategy(name=name, rsi=rsi, bb_bot=bb_bot, params=params)
     assert st.buy_upon_bb_bot_upwards_crossover_with_rsi_reenforcement(name, data) == True
+    
+def test_sell_upon_bb_mid_hat_inflection():
+    close =  [100, 90, 100]
+    bb_mid = [ 90, 100,  90]
+    data = FakeData(close = close)
+    st = FakeStrategy(name=name, bb_mid=bb_mid)
+    assert st.sell_upon_bb_mid_hat_inflection(name, data) == True
+
+    
+    
