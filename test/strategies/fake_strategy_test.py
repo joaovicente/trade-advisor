@@ -72,16 +72,6 @@ def test_sell_upon_bb_mid_hat_inflection_and_close_above_position():
     assert st.sell_upon_bb_mid_hat_inflection(name, data) == False, scenario
     
 def test_sell_upon_bb_low_crossover():
-    # Refine sell_upon_bb_low_crossover
-    # Allow for some initial loss 
-    # - after bb-bot is crossed over downards
-    # - allow n days to recover
-    # - unless loss above tolerance (5%)
-    # Use AMZN, NFLX, UNH, BRK-B, JPM, PFE to fine tune
-    # Ensure bearish PFE is not adversely affected by tuning
-    # Given a bb_low_crossover in the last n days
-    # When loss goes below loss_tolerance - try 5% first - Observed recoveries NFLX(1.5%) AMZN(2.1%) JPM(3.6%) BRK-B(3.7%))
-    # Then sell 
     scenario = "Sell if day after bb-bot downwards crossover loss above 5%"
     position_price = 100
     close =  [ 101,  94] # latest close at 6 % loss 
