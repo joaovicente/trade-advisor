@@ -223,8 +223,10 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
       
     def sell_upon_bb_mid_hat_inflection(self, name, data):
         sell_action = None
-        if self.b_band[name].lines.mid[-2] < self.b_band[name].lines.mid[-1]\
-            and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]:
+        condition = self.b_band[name].lines.mid[-2] < self.b_band[name].lines.mid[-1]\
+            and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]\
+            and data.close[0] > self.getposition(data).price
+        if condition:
             sell_action = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
             sell_action.reason = f"{name} Bollinger mid inflection ({self.b_band[name].lines.mid[-3]:.2f}, {self.b_band[name].lines.mid[-2]:.2f}, {self.b_band[name].lines.mid[-1]:.2f}, {self.b_band[name].lines.mid[0]:.2f})"
         return sell_action

@@ -34,15 +34,16 @@ class FakeStrategy:
         return position
         
     def buy_upon_bb_bot_upwards_crossover_with_rsi_reenforcement(self, name, data):
-        value = data.close[-1] < self.b_band[name].lines.bot[-1] \
+        condition = data.close[-1] < self.b_band[name].lines.bot[-1] \
             and data.close[0] > self.b_band[name].lines.bot[0]\
             and self.rsi[name][0] < self.params.lower_rsi
-        return value
+        return condition
     
     def sell_upon_bb_mid_hat_inflection(self, name, data):
-        value = self.b_band[name].lines.mid[-2] < self.b_band[name].lines.mid[-1]\
-            and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]
-        return value
+        condition = self.b_band[name].lines.mid[-2] < self.b_band[name].lines.mid[-1]\
+            and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]\
+            and data.close[0] > self.getposition(data).price
+        return condition
 
 class FakeData:
     def __init__(self, close=[], position_price=0):
