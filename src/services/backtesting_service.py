@@ -184,6 +184,7 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
         ('printlog', False),
         ('upper_rsi', 60),
         ('lower_rsi', 50),
+        ('bb_low_crossover_loss_tolerance', 5),
         ('loss_pct_threshold', 5),
         ('profit_protection_pct_threshold', 0), # 0 = allow profit to come down to 0%
         ('fixed_investment_amount', 3000),
@@ -233,9 +234,11 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
        
     def sell_upon_bb_low_crossover(self, name, data):
         sell_action = None
-        if data.close[0] < self.b_band[name].lines.bot[0]:
+        condition = data.close[0] < self.b_band[name].lines.bot[0] \
+            and ((1-(data.close[0] / self.getposition(data).price))*100) > self.params.bb_low_crossover_loss_tolerance
+        if condition:
             sell_action  = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
-            sell_action.reason = f"{name} Close ({data.close[-1]:.2f}, {data.close[0]:.2f}) below Bollinger bottom ({self.b_band[name].lines.bot[0]:.2f})"
+            sell_action.reason = f"{name} Close ({data.close[-1]:.2f}, {data.close[0]:.2f}) below Bollinger bottom ({self.b_band[name].lines.bot[0]:.2f} and loss above {self.params.bb_low_crossover_loss_tolerance}%)"
         return sell_action
     
     def sell_action(self, name):
