@@ -22,7 +22,8 @@ class BaseBacktraderStrategy(bt.Strategy):
         self.buyprice = {data._name: None for data in self.datas}
         self.buycomm = {data._name: None for data in self.datas}
         self.last_bought_order_date = {data._name: None for data in self.datas}
-        self.stock_daily_stats_list = {data._name: [] for data in self.datas}            
+        self.stock_daily_stats_list = {data._name: [] for data in self.datas}
+        self.stock_pnl = {data._name: 0 for data in self.datas}
         # Add the RSI indicator
         self.rsi = {
             data._name: bt.indicators.RSI(data, 
@@ -93,6 +94,7 @@ class BaseBacktraderStrategy(bt.Strategy):
     def notify_trade(self, trade):
         if not trade.isclosed:
             return
+        self.stock_pnl[trade.data._name] += trade.pnl
         self.log('%s OPERATION PROFIT, GROSS %.2f, NET %.2f' %
                  (trade.data._name, trade.pnl, trade.pnlcomm))
 
@@ -254,6 +256,10 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
             if sell_action is None:
                 sell_action = self.sell_upon_bb_low_crossover(name, data)
         return sell_action
+    
+    def stop(self):
+        if self.params.custom_callback is not None:
+            self.params.custom_callback(self)
 class BacktraderStrategy(BaseBacktraderStrategy):
     params = (
         ('start_date', None),
