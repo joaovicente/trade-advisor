@@ -40,9 +40,11 @@ class FakeStrategy:
         return condition
     
     def sell_upon_bb_mid_hat_inflection(self, name, data):
-        condition = self.b_band[name].lines.mid[-2] < self.b_band[name].lines.mid[-1]\
+        condition = data.close[0] > self.getposition(data).price\
+            and self.b_band[name].lines.mid[-3] < self.b_band[name].lines.mid[-2]\
+            and self.b_band[name].lines.mid[-2] > self.b_band[name].lines.mid[-1]\
             and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]\
-            and data.close[0] > self.getposition(data).price
+            and data.close[0] < data.close[-2]
         return condition
 
     def sell_upon_bb_low_crossover(self, name, data):

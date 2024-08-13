@@ -144,6 +144,9 @@ class BaseBacktraderStrategy(bt.Strategy):
                                           rsi = round(self.rsi[data._name][0], 2), 
                                           rsi_ma = round(self.rsi_ma[data._name][0], 2),
                                           rsi_crossover_signal = rsi_crossover_signal,
+                                          bb_top = self.b_band[data._name].lines.top[0],
+                                          bb_mid = self.b_band[data._name].lines.mid[0],
+                                          bb_bot = self.b_band[data._name].lines.bot[0],
                                           position = round(self.getposition(data).price, 2), 
                                           pnl_pct = round(pnl_perc * 100,2))
             self.stock_daily_stats_list[data._name].append(stock_stats)
@@ -226,12 +229,16 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
       
     def sell_upon_bb_mid_hat_inflection(self, name, data):
         sell_action = None
-        condition = self.b_band[name].lines.mid[-2] < self.b_band[name].lines.mid[-1]\
+        # In bull mode
+        condition = data.close[0] > self.getposition(data).price\
+            and self.b_band[name].lines.mid[-3] < self.b_band[name].lines.mid[-2]\
+            and self.b_band[name].lines.mid[-2] > self.b_band[name].lines.mid[-1]\
             and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]\
-            and data.close[0] > self.getposition(data).price
+            and data.close[0] < data.close[-2] # close recovery seen in last close compared to hat peak
         if condition:
             sell_action = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
-            sell_action.reason = f"{name} Bollinger mid inflection ({self.b_band[name].lines.mid[-3]:.2f}, {self.b_band[name].lines.mid[-2]:.2f}, {self.b_band[name].lines.mid[-1]:.2f}, {self.b_band[name].lines.mid[0]:.2f})"
+            sell_action.reason = f"{name} Bollinger mid inflection sustained ({self.b_band[name].lines.mid[-3]:.2f}, {self.b_band[name].lines.mid[-2]:.2f}, {self.b_band[name].lines.mid[-1]:.2f}, {self.b_band[name].lines.mid[0]:.2f})"
+
         return sell_action
        
     def sell_upon_bb_low_crossover(self, name, data):
