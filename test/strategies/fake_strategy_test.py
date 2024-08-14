@@ -41,16 +41,16 @@ def test_buy_upon_bb_bot_upwards_crossover_with_rsi_reenforcement():
 def test_dont_sell_upon_bb_mid_hat_inflection_and_close_above_position_only_when_bull():
     scenario = "Don't sell when bb-mid hat AND close below position price"
     position_price = 102 
-    close =  [ 100, 100, 100, 100] # latest close below position price
+    close =  [ 100, 100, 100, 99] # latest close below position price but below top hat close
     bb_mid = [ 95, 110,  95, 92] # mid hat above position
     data = FakeData(close=close, position_price=position_price)
     st = FakeStrategy(name=name, bb_mid=bb_mid)
     assert st.sell_upon_bb_mid_hat_inflection(name, data) == False, scenario
     
 def test_sell_upon_bb_mid_hat_inflection_and_close_above_position_only_when_bull():
-    scenario = "Sell when bb-mid hat AND close below position price"
+    scenario = "Sell when bb-mid hat AND close above position price"
     position_price = 80 
-    close =  [ 100, 100, 100, 100] # latest close below position price
+    close =  [ 100, 100, 100, 99] # latest close above position price but below top hat close
     bb_mid = [ 95, 110,  95, 92] # mid hat above position
     data = FakeData(close=close, position_price=position_price)
     st = FakeStrategy(name=name, bb_mid=bb_mid)
@@ -167,4 +167,21 @@ def test_sell_upon_bb_low_crossover():
     st = FakeStrategy(name=name, bb_bot=bb_bot, params=params)
     assert st.sell_upon_bb_low_crossover(name, data) == False, scenario
     
+def test_sell_if_percent_loss():
+    scenario = "Sell if loss above 10%"
+    position_price = 100
+    close =  [99, 89] # latest close above 10% loss 
+    params = {'loss_pct_threshold': 10}
+    data = FakeData(close=close, position_price=position_price)
+    st = FakeStrategy(name=name, params=params)
+    assert st.sell_if_percent_loss(name, data) == True, scenario
+    
+def test_dont_sell_if_percent_loss():
+    scenario = "Don't sell if loss below 10%"
+    position_price = 100
+    close =  [ 99,  91] # latest close below 10% loss 
+    params = {'loss_pct_threshold': 10}
+    data = FakeData(close=close, position_price=position_price)
+    st = FakeStrategy(name=name, params=params)
+    assert st.sell_if_percent_loss(name, data) == False, scenario
     

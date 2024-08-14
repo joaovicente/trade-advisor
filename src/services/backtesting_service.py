@@ -127,6 +127,9 @@ class BaseBacktraderStrategy(bt.Strategy):
         for k in range(index, 1):
             peak_price = max(peak_price, data.close[k])
         return peak_price
+   
+    def pnl_perc(self, data):
+        return 1 - (self.getposition(data).price / data.close[0]) 
     
     def next(self):
         for data in self.datas:
@@ -136,7 +139,7 @@ class BaseBacktraderStrategy(bt.Strategy):
             # Simply log the closing price of the series from the reference
             pnl_perc = 0
             if self.getposition(data):
-                pnl_perc = 1 - (self.getposition(data).price / data.close[0]) 
+                pnl_perc = self.pnl_perc(data)
             rsi_crossover_signal = self.rsi[data._name][0] > self.rsi_ma[data._name][0] and self.rsi[data._name][-1] < self.rsi_ma[data._name][-1]
             stock_stats = StockDailyStats(date=str(self.datas[0].datetime.date(0)), 
                                           ticker = data._name, 
@@ -190,7 +193,7 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
         ('upper_rsi', 60),
         ('lower_rsi', 50),
         ('bb_low_crossover_loss_tolerance', 5),
-        ('loss_pct_threshold', 5),
+        ('loss_pct_threshold', 10),
         ('profit_protection_pct_threshold', 0), # 0 = allow profit to come down to 0%
         ('fixed_investment_amount', 3000),
         ('single_date_to_trade', None), # date string expected (e.g. 2023-12-31)
@@ -237,7 +240,7 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
             and data.close[0] < data.close[-2] # close recovery seen in last close compared to hat peak
         if condition:
             sell_action = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
-            sell_action.reason = f"{name} Bollinger mid inflection sustained ({self.b_band[name].lines.mid[-3]:.2f}, {self.b_band[name].lines.mid[-2]:.2f}, {self.b_band[name].lines.mid[-1]:.2f}, {self.b_band[name].lines.mid[0]:.2f})"
+            sell_action.reason = f"{name} Bollinger mid inflection sustained ({self.b_band[name].lines.mid[-3]:.2f}, {self.b_band[name].lines.mid[-2]:.2f}, {self.b_band[name].lines.mid[-1]:.2f}, {self.b_band[name].lines.mid[0]:.2f}) - pnl: {self.pnl_perc(data)}%"
 
         return sell_action
        
@@ -247,7 +250,15 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
             and ((1-(data.close[0] / self.getposition(data).price))*100) > self.params.bb_low_crossover_loss_tolerance
         if condition:
             sell_action  = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
-            sell_action.reason = f"{name} Close ({data.close[-1]:.2f}, {data.close[0]:.2f}) below Bollinger bottom ({self.b_band[name].lines.bot[0]:.2f} and loss above {self.params.bb_low_crossover_loss_tolerance}%)"
+            sell_action.reason = f"{name} Close ({data.close[-1]:.2f}, {data.close[0]:.2f}) below Bollinger bottom ({self.b_band[name].lines.bot[0]:.2f}) and loss above {self.params.bb_low_crossover_loss_tolerance}% - pnl: {self.pnl_perc(data)}%"
+        return sell_action
+   
+    def sell_if_percent_loss(self, name, data):
+        sell_action = None
+        condition = data.close[0] < self.getposition(data).price * (1-(self.params.loss_pct_threshold / 100))
+        if condition:
+            sell_action  = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
+            sell_action.reason = f"{name} Close ({data.close[-1]:.2f}, {data.close[0]:.2f}) loss {self.pnl_perc(data)} above {self.params.loss_pct_threshold}%"
         return sell_action
     
     def sell_action(self, name):
@@ -262,6 +273,8 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
             sell_action = self.sell_upon_bb_mid_hat_inflection(name, data)
             if sell_action is None:
                 sell_action = self.sell_upon_bb_low_crossover(name, data)
+                if sell_action is None:
+                    sell_action = self.sell_if_percent_loss(name, data)
         return sell_action
     
     def stop(self):

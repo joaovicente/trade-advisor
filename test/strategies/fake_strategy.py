@@ -52,6 +52,10 @@ class FakeStrategy:
         condition = data.close[0] < self.b_band[name].lines.bot[0] \
             and ((1-(data.close[0] / self.getposition(data).price))*100) > self.params.bb_low_crossover_loss_tolerance
         return condition
+    
+    def sell_if_percent_loss(self, name, data):
+        condition = data.close[0] < self.getposition(data).price * (1-(self.params.loss_pct_threshold / 100))
+        return condition
 class FakeData:
     def __init__(self, close=[], position_price=0):
         self.close = FakeLine(close)
