@@ -10,6 +10,30 @@ non_tech_stock = [ 'JNJ', 'LLY', 'PFE', 'UNH', 'V', 'MA', 'BRK-B', 'JPM', 'COST'
 interesting_stock = tech_stock_without_snow + non_tech_stock
 interesting_stock_without_nvda = interesting_stock.remove('NVDA')
 
+basic_materials_stock = ['SNES', 'CRKN', 'AUMN', 'INHD', 'JCTCF', 'LODE', 'PZG', 'WWR', 'GORO', 'EVA']
+communication_services_stock = ['GOOG', 'GOOGL', 'META', 'NFLX', 'TMUS', 'VZ', 'DIS', 'CMCSA', 'T', 'DASH']
+consumer_cyclical_stock = ['AMZN', 'TSLA', 'HD', 'MCD', 'LOW', 'TJX', 'BKNG', 'NKE', 'SBUX', 'MELI']
+consumer_defensive_stock = ['WMT', 'PG', 'COST', 'KO', 'PEP', 'PM', 'MDLZ', 'MO', 'CL', 'TGT']
+energy_stock = ['XOM', 'CVX', 'COP', 'EOG', 'SLB', 'EPD', 'MPC', 'PSX', 'ET', 'WMB']
+financial_stock = ['BRK-A', 'BRK-B', 'JPM', 'V', 'MA', 'BAC', 'WFC', 'AXP', 'BX', 'MS']
+healthcare_stock = ['LLY', 'UNH', 'JNJ', 'ABBV', 'MRK', 'TMO', 'DHR', 'ABT', 'AMGN', 'ISRG']
+industrial_stock = ['GE', 'CAT', 'RTX', 'UNP', 'LMT', 'HON', 'UPS', 'ADP', 'BA', 'DE']
+real_estate_stock = ['PLD', 'AMT', 'EQIX', 'WELL', 'PSA', 'O', 'SPG', 'DLR', 'CCI', 'EXR']
+technology_stock = ['AAPL', 'MSFT', 'NVDA', 'AVGO', 'ORCL', 'CRM', 'ADBE', 'AMD', 'QCOM', 'CSCO']
+utilities_stock = ['NEE', 'SO', 'DUK', 'CEG', 'AEP', 'GEV', 'SRE', 'D', 'PEG', 'PCG']
+diversified_stock = basic_materials_stock \
+    + communication_services_stock \
+    + consumer_cyclical_stock \
+    + consumer_defensive_stock \
+    + energy_stock \
+    + financial_stock \
+    + healthcare_stock \
+    + industrial_stock \
+    + real_estate_stock \
+    + utilities_stock \
+    + technology_stock 
+
+
 def optimisation_dates(num_years, year_offset):
     number_of_days_to_simulate = 365 * num_years
     time_travel_days = 365 * year_offset

@@ -43,18 +43,36 @@ def test_dont_sell_upon_bb_mid_hat_inflection_and_close_above_position_only_when
     position_price = 102 
     close =  [ 100, 100, 100, 99] # latest close below position price but below top hat close
     bb_mid = [ 95, 110,  95, 92] # mid hat above position
+    params = {'inflection_profit_percentage_target': 0} # Require 0% profit to sell
     data = FakeData(close=close, position_price=position_price)
-    st = FakeStrategy(name=name, bb_mid=bb_mid)
+    st = FakeStrategy(name=name, bb_mid=bb_mid, params=params)
     assert st.sell_upon_bb_mid_hat_inflection(name, data) == False, scenario
     
 def test_sell_upon_bb_mid_hat_inflection_and_close_above_position_only_when_bull():
-    scenario = "Sell when bb-mid hat AND close above position price"
+    scenario = "Sell when bb-mid hat AND close above position price AND minimum profit achieved"
     position_price = 80 
-    close =  [ 100, 100, 100, 99] # latest close above position price but below top hat close
+    close =  [ 100, 100, 100, 84] # latest close 
+        # above position price
+        # below top hat close
+        # above 4 percentage profit (84/80 = 1.05 = 5%)
     bb_mid = [ 95, 110,  95, 92] # mid hat above position
+    params = {'inflection_profit_percentage_target': 4} # Require 4% profit to sell
     data = FakeData(close=close, position_price=position_price)
-    st = FakeStrategy(name=name, bb_mid=bb_mid)
+    st = FakeStrategy(name=name, bb_mid=bb_mid, params=params)
     assert st.sell_upon_bb_mid_hat_inflection(name, data) == True, scenario
+    
+def test_done_sell_upon_bb_mid_hat_inflection_and_close_above_position_only_when_bull():
+    scenario = "Do't Sell when bb-mid hat AND close above position price BUT minimum profit not achieved"
+    position_price = 80 
+    close =  [ 100, 100, 100, 82] # latest close 
+        # above position price
+        # below top hat close
+        # above 4 percentage profit (82/80 = 1.0375 = 3.75%)
+    bb_mid = [ 95, 110,  95, 92] # mid hat above position
+    params = {'inflection_profit_percentage_target': 4} # Require 4% profit to sell
+    data = FakeData(close=close, position_price=position_price)
+    st = FakeStrategy(name=name, bb_mid=bb_mid, params=params)
+    assert st.sell_upon_bb_mid_hat_inflection(name, data) == False, scenario
     
 def test_dont_sell_upon_bb_mid_hat_inflection_rebound_tolerance_amzn():
     #2023-09-27, AMZN BUY CREATE, 125.98
@@ -73,8 +91,9 @@ def test_dont_sell_upon_bb_mid_hat_inflection_rebound_tolerance_amzn():
     position_price = 128.98
     close =  [149.93, 148.47, 144.57, 145.24] 
     bb_mid = [149.97, 150.15, 150.03, 150.07] # Rebound on last entry
+    params = {'inflection_profit_percentage_target': 0} # Require 0% profit to sell
     data = FakeData(close=close, position_price=position_price)
-    st = FakeStrategy(name=name, bb_mid=bb_mid)
+    st = FakeStrategy(name=name, bb_mid=bb_mid, params=params)
     assert st.sell_upon_bb_mid_hat_inflection(name, data) == False, scenario
 
 def test_dont_sell_upon_bb_mid_hat_inflection_rebound_tolerance_crm():
@@ -101,8 +120,9 @@ def test_dont_sell_upon_bb_mid_hat_inflection_rebound_tolerance_crm():
     position_price = 202.73
     close =  [265.58, 263.14, 263.13, 251.84] 
     bb_mid = [258.37, 258.93, 258.74, 258.79] # Rebound on last entry
+    params = {'inflection_profit_percentage_target': 0} # Require 0% profit to sell
     data = FakeData(close=close, position_price=position_price)
-    st = FakeStrategy(name=name, bb_mid=bb_mid)
+    st = FakeStrategy(name=name, bb_mid=bb_mid, params=params)
     assert st.sell_upon_bb_mid_hat_inflection(name, data) == False, scenario
     
 def test_dont_sell_upon_bb_mid_hat_inflection_rebound_tolerance_nflx():
@@ -122,8 +142,9 @@ def test_dont_sell_upon_bb_mid_hat_inflection_rebound_tolerance_nflx():
     position_price = 360.82
     close =  [480.33, 485.31, 482.95, 485.71] 
     bb_mid = [483.99, 484.40, 484.36, 483.76] 
+    params = {'inflection_profit_percentage_target': 0} # Require 0% profit to sell
     data = FakeData(close=close, position_price=position_price)
-    st = FakeStrategy(name=name, bb_mid=bb_mid)
+    st = FakeStrategy(name=name, bb_mid=bb_mid, params=params)
     assert st.sell_upon_bb_mid_hat_inflection(name, data) == False, scenario
     
 def test_dont_sell_upon_bb_mid_hat_inflection_rebound_tolerance_msft():

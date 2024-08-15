@@ -32,6 +32,9 @@ class FakeStrategy:
     def getposition(self, data):
         position = SimpleNamespace(price=data.position_price)
         return position
+    
+    def pnl_perc(self, data):
+        return round((1 - (self.getposition(data).price / data.close[0])) * 100, 2)
         
     def buy_upon_bb_bot_upwards_crossover_with_rsi_reenforcement(self, name, data):
         condition = data.close[-1] < self.b_band[name].lines.bot[-1] \
@@ -44,7 +47,8 @@ class FakeStrategy:
             and self.b_band[name].lines.mid[-3] < self.b_band[name].lines.mid[-2]\
             and self.b_band[name].lines.mid[-2] > self.b_band[name].lines.mid[-1]\
             and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]\
-            and data.close[0] < data.close[-2]
+            and self.pnl_perc(data) > self.params.inflection_profit_percentage_target\
+            and data.close[0] < data.close[-2] # close recovery seen in last close compared to hat peak
         return condition
 
     def sell_upon_bb_low_crossover(self, name, data):

@@ -129,7 +129,7 @@ class BaseBacktraderStrategy(bt.Strategy):
         return peak_price
    
     def pnl_perc(self, data):
-        return 1 - (self.getposition(data).price / data.close[0]) 
+        return round((1 - (self.getposition(data).price / data.close[0])) * 100, 2)
     
     def next(self):
         for data in self.datas:
@@ -151,7 +151,7 @@ class BaseBacktraderStrategy(bt.Strategy):
                                           bb_mid = self.b_band[data._name].lines.mid[0],
                                           bb_bot = self.b_band[data._name].lines.bot[0],
                                           position = round(self.getposition(data).price, 2), 
-                                          pnl_pct = round(pnl_perc * 100,2))
+                                          pnl_pct = pnl_perc)
             self.stock_daily_stats_list[data._name].append(stock_stats)
             self.log(stock_stats.as_text(include_date=False))
 
@@ -190,11 +190,12 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
     params = (
         ('start_date', None),
         ('printlog', False),
-        ('upper_rsi', 60),
-        ('lower_rsi', 50),
-        ('bb_low_crossover_loss_tolerance', 5),
-        ('loss_pct_threshold', 10),
-        ('profit_protection_pct_threshold', 0), # 0 = allow profit to come down to 0%
+        ('upper_rsi', 60), # Not in use in this strategy
+        ('lower_rsi', 40),
+        ('bb_low_crossover_loss_tolerance', 5), # allow loss above this pct when bb-low is crossed
+        ('loss_pct_threshold', 100), # 100 is full loss tolerance. using values such as 10-11% made little difference. bb-bot cathes loss better
+        ('profit_protection_pct_threshold', 0), # Not in use
+        ('inflection_profit_percentage_target', 4), # Don't sell on inflection unless profit is above this value
         ('fixed_investment_amount', 3000),
         ('single_date_to_trade', None), # date string expected (e.g. 2023-12-31)
         ('custom_callback', None),
@@ -237,10 +238,11 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
             and self.b_band[name].lines.mid[-3] < self.b_band[name].lines.mid[-2]\
             and self.b_band[name].lines.mid[-2] > self.b_band[name].lines.mid[-1]\
             and self.b_band[name].lines.mid[-1] > self.b_band[name].lines.mid[0]\
+            and self.pnl_perc(data) > self.params.inflection_profit_percentage_target\
             and data.close[0] < data.close[-2] # close recovery seen in last close compared to hat peak
         if condition:
             sell_action = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
-            sell_action.reason = f"{name} Bollinger mid inflection sustained ({self.b_band[name].lines.mid[-3]:.2f}, {self.b_band[name].lines.mid[-2]:.2f}, {self.b_band[name].lines.mid[-1]:.2f}, {self.b_band[name].lines.mid[0]:.2f}) - pnl: {self.pnl_perc(data)}%"
+            sell_action.reason = f"{name} Bollinger mid inflection sustained ({self.b_band[name].lines.mid[-3]:.2f}, {self.b_band[name].lines.mid[-2]:.2f}, {self.b_band[name].lines.mid[-1]:.2f}, {self.b_band[name].lines.mid[0]:.2f}) - pnl-pct: {self.pnl_perc(data)}%"
 
         return sell_action
        
@@ -250,7 +252,7 @@ class RsiBollingerStrategy(BaseBacktraderStrategy):
             and ((1-(data.close[0] / self.getposition(data).price))*100) > self.params.bb_low_crossover_loss_tolerance
         if condition:
             sell_action  = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
-            sell_action.reason = f"{name} Close ({data.close[-1]:.2f}, {data.close[0]:.2f}) below Bollinger bottom ({self.b_band[name].lines.bot[0]:.2f}) and loss above {self.params.bb_low_crossover_loss_tolerance}% - pnl: {self.pnl_perc(data)}%"
+            sell_action.reason = f"{name} Close ({data.close[-1]:.2f}, {data.close[0]:.2f}) below Bollinger bottom ({self.b_band[name].lines.bot[0]:.2f}) and loss above {self.params.bb_low_crossover_loss_tolerance}% - pnl-pct: {self.pnl_perc(data)}%"
         return sell_action
    
     def sell_if_percent_loss(self, name, data):
