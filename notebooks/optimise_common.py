@@ -3,36 +3,12 @@ import backtrader as bt
 from services.backtesting_service import BaseBacktraderStrategy
 import yfinance as yf
 
-tech_stock = [ 'AMZN', 'SNOW', 'MSFT', 'AAPL', 'GOOG', 'NVDA', 'META', 'ORCL', 'NFLX', 'ADBE', 'TWLO', 'AVGO', 'CRM', ]
-tech_stock_without_snow = [s for s in tech_stock if s != 'SNOW']
-tech_stock_without_nvidia = [s for s in tech_stock if s != 'NVDA']
-non_tech_stock = [ 'JNJ', 'LLY', 'PFE', 'UNH', 'V', 'MA', 'BRK-B', 'JPM', 'COST', 'PG'] # FIXME: default strategy causes losses in non-tech stock
-interesting_stock = tech_stock_without_snow + non_tech_stock
-interesting_stock_without_nvda = interesting_stock.remove('NVDA')
+tech_stock = [ 'AMZN', 'MSFT', 'AAPL', 'GOOG', 'NVDA', 'META', 'ORCL', 'NFLX', 'ADBE', 'AVGO', 'CRM']
+non_tech_stock = [ 'JNJ', 'LLY', 'PFE', 'UNH', 'V', 'MA', 'BRK-B', 'JPM', 'COST', 'PG']
+interesting_stock = tech_stock + non_tech_stock
 
-basic_materials_stock = ['SNES', 'CRKN', 'AUMN', 'INHD', 'JCTCF', 'LODE', 'PZG', 'WWR', 'GORO', 'EVA']
-communication_services_stock = ['GOOG', 'GOOGL', 'META', 'NFLX', 'TMUS', 'VZ', 'DIS', 'CMCSA', 'T', 'DASH']
-consumer_cyclical_stock = ['AMZN', 'TSLA', 'HD', 'MCD', 'LOW', 'TJX', 'BKNG', 'NKE', 'SBUX', 'MELI']
-consumer_defensive_stock = ['WMT', 'PG', 'COST', 'KO', 'PEP', 'PM', 'MDLZ', 'MO', 'CL', 'TGT']
-energy_stock = ['XOM', 'CVX', 'COP', 'EOG', 'SLB', 'EPD', 'MPC', 'PSX', 'ET', 'WMB']
-financial_stock = ['BRK-A', 'BRK-B', 'JPM', 'V', 'MA', 'BAC', 'WFC', 'AXP', 'BX', 'MS']
-healthcare_stock = ['LLY', 'UNH', 'JNJ', 'ABBV', 'MRK', 'TMO', 'DHR', 'ABT', 'AMGN', 'ISRG']
-industrial_stock = ['GE', 'CAT', 'RTX', 'UNP', 'LMT', 'HON', 'UPS', 'ADP', 'BA', 'DE']
-real_estate_stock = ['PLD', 'AMT', 'EQIX', 'WELL', 'PSA', 'O', 'SPG', 'DLR', 'CCI', 'EXR']
-technology_stock = ['AAPL', 'MSFT', 'NVDA', 'AVGO', 'ORCL', 'CRM', 'ADBE', 'AMD', 'QCOM', 'CSCO']
-utilities_stock = ['NEE', 'SO', 'DUK', 'CEG', 'AEP', 'GEV', 'SRE', 'D', 'PEG', 'PCG']
-diversified_stock = basic_materials_stock \
-    + communication_services_stock \
-    + consumer_cyclical_stock \
-    + consumer_defensive_stock \
-    + energy_stock \
-    + financial_stock \
-    + healthcare_stock \
-    + industrial_stock \
-    + real_estate_stock \
-    + utilities_stock \
-    + technology_stock 
-
+# Target stock: US Mega (>200B market cap) with positive growth (from finviz screener)
+high_performance_stock = ['AAPL', 'ABBV', 'ADBE', 'AMD', 'AMZN', 'AVGO', 'BAC', 'BRK-B', 'COST', 'CRM', 'CVX', 'GOOG', 'HD', 'JNJ', 'JPM', 'KO', 'LLY', 'MA', 'META', 'MRK', 'MSFT', 'NFLX', 'NVDA', 'ORCL', 'PEP', 'PFE', 'PG', 'TMO', 'TSLA', 'UNH', 'V', 'WMT', 'XOM']
 
 def optimisation_dates(num_years, year_offset):
     number_of_days_to_simulate = 365 * num_years
