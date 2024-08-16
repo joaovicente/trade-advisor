@@ -1,6 +1,6 @@
 import datetime 
 import backtrader as bt
-from services.backtesting_service import BaseBacktraderStrategy
+from strategies.base_strategy import BaseStrategy
 import yfinance as yf
 
 tech_stock = [ 'AMZN', 'MSFT', 'AAPL', 'GOOG', 'NVDA', 'META', 'ORCL', 'NFLX', 'ADBE', 'AVGO', 'CRM']
@@ -14,7 +14,7 @@ def optimisation_dates(num_years, year_offset):
     number_of_days_to_simulate = 365 * num_years
     time_travel_days = 365 * year_offset
     end_date=datetime.datetime.today().date() - datetime.timedelta(time_travel_days)
-    warmup_date = end_date - datetime.timedelta(number_of_days_to_simulate + BaseBacktraderStrategy.INDICATOR_WARMUP_IN_DAYS)
+    warmup_date = end_date - datetime.timedelta(number_of_days_to_simulate + BaseStrategy.INDICATOR_WARMUP_IN_DAYS)
     start_date = end_date - datetime.timedelta(number_of_days_to_simulate)
     return warmup_date, start_date, end_date
 

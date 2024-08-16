@@ -1,10 +1,9 @@
 from models.open_position import OpenPosition
 from services.stock_compute_service import StockComputeService
-from services.backtesting_service import BacktraderStrategy
-from datetime import datetime
+from strategies.base_strategy import BaseStrategy
 from test.utils import *
 
-trade_action_context_size = BacktraderStrategy.TRADE_ACTION_CONTEXT_SIZE
+trade_action_context_size = BaseStrategy.TRADE_ACTION_CONTEXT_SIZE
 
 def test_trade_today_sell_single_open_position():
     ticker = "SNOW"

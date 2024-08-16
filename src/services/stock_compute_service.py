@@ -1,7 +1,8 @@
 from typing import List
 from schemas.portfolio_stats import AssetStats, PortfolioStats, PositionStats
 from schemas.stock_daily_stats import StockDailyStats
-from services.backtesting_service import BacktraderStrategy
+from strategies.base_strategy import BaseStrategy
+from strategies.rsi_strategy import RsiStrategy
 
 import backtrader as bt
 import yfinance as yf
@@ -9,7 +10,7 @@ import yfinance as yf
 import datetime
 
 class StockComputeService:
-    DEFAULT_DAILY_STATS_RETURNED = BacktraderStrategy.TRADE_ACTION_CONTEXT_SIZE
+    DEFAULT_DAILY_STATS_RETURNED = BaseStrategy.TRADE_ACTION_CONTEXT_SIZE
     def __init__(self, tickers, todays_date_str, open_positions=None):
         self.todays_date_str = todays_date_str
         self.open_positions = open_positions
@@ -19,10 +20,10 @@ class StockComputeService:
         self.end_date = (datetime.datetime.strptime(todays_date_str, "%Y-%m-%d") + datetime.timedelta(days=1)).date()
         number_of_weeks_to_observe = 2
         if open_positions:
-            self.warmup_date = open_positions[0].date - datetime.timedelta(weeks = BacktraderStrategy.INDICATOR_WARMUP_IN_WEEKS + number_of_weeks_to_observe)
+            self.warmup_date = open_positions[0].date - datetime.timedelta(weeks = BaseStrategy.INDICATOR_WARMUP_IN_WEEKS + number_of_weeks_to_observe)
             self.start_date = open_positions[0].date - datetime.timedelta(weeks = number_of_weeks_to_observe)
         else:
-            self.warmup_date = self.end_date - datetime.timedelta(weeks = BacktraderStrategy.INDICATOR_WARMUP_IN_WEEKS + number_of_weeks_to_observe)
+            self.warmup_date = self.end_date - datetime.timedelta(weeks = BaseStrategy.INDICATOR_WARMUP_IN_WEEKS + number_of_weeks_to_observe)
             self.start_date = self.end_date - datetime.timedelta(weeks = number_of_weeks_to_observe)
         if self.warmup_date > self.end_date:
             print(f"ERROR start_date={self.start_date} < end_date={self.end_date}")
@@ -30,7 +31,7 @@ class StockComputeService:
         # Create a cerebro entity
         self.cerebro = bt.Cerebro()
         # Add a strategy
-        self.cerebro.addstrategy(BacktraderStrategy,
+        self.cerebro.addstrategy(RsiStrategy,
                             start_date = self.start_date,
                             printlog=False,
                             upper_rsi=60,
