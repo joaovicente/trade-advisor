@@ -40,7 +40,7 @@ def execute_cerebro(cerebro, optimise, stats):
    
     if optimise: 
         print('Optimised runs by Final Value:')
-        sorted_results = sorted(stats, key=lambda x: x['final_value'], reverse=True)
+        sorted_results = sorted(stats, key=lambda x: x['final_portolio_value'], reverse=True)
         for result in sorted_results[:5]:
             print(result)
     else:

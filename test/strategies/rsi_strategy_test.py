@@ -1,6 +1,7 @@
 from models.open_position import OpenPosition
 from services.stock_compute_service import StockComputeService
 from strategies.base_strategy import BaseStrategy
+from strategies.rsi_strategy import RsiStrategy
 from test.utils import *
 
 trade_action_context_size = BaseStrategy.TRADE_ACTION_CONTEXT_SIZE
@@ -22,7 +23,7 @@ def test_trade_today_sell_single_open_position():
     #2024-05-31, SNOW Maximum tolerated loss reached (9.00%) Selling with 11.32% loss.
     #2024-05-31, SNOW SELL CREATE, 136.18
     expected_sell_date = "2024-05-31"
-    actions = StockComputeService(ticker, expected_sell_date, open_positions).trades_today()
+    actions = StockComputeService(ticker, expected_sell_date, open_positions, RsiStrategy).trades_today()
     # Expect sell action is returned
     assert len(actions) == 1
     assert actions[0].date == parse_date(expected_sell_date)
@@ -38,7 +39,7 @@ def test_trade_today_sell_multiple_open_positions():
         OpenPosition(date=parse_date("2024-04-09"), ticker='SNOW', size=32.1377968, price=155.58)
     ]   
     expected_sell_date = "2024-05-31"
-    actions = StockComputeService(ticker, expected_sell_date, open_positions).trades_today()
+    actions = StockComputeService(ticker, expected_sell_date, open_positions, RsiStrategy).trades_today()
     # Expect sell action is returned
     assert len(actions) == 1
     assert actions[0].date == parse_date(expected_sell_date)
@@ -49,7 +50,7 @@ def test_trade_today_sell_multiple_open_positions():
 def test_trade_today_buy_without_open_positions():
     date = "2024-05-06"
     ticker = "META"
-    actions = StockComputeService(ticker, date).trades_today()
+    actions = StockComputeService(ticker, date, strategy=RsiStrategy).trades_today()
     assert len(actions) == 1
     assert actions[0].date == parse_date(date)
     assert actions[0].action == "BUY"
@@ -70,7 +71,7 @@ def test_trade_today_rsi_calculation_bug():
    
     scenarios = {'pos': None, 'no_pos': None}
      
-    scenarios['pos'] = StockComputeService(ticker, date_today, open_positions)
+    scenarios['pos'] = StockComputeService(ticker, date_today, open_positions, RsiStrategy)
     scenarios['no_pos'] = StockComputeService(ticker, date_today)
    
     for scenario in list(scenarios.keys()):

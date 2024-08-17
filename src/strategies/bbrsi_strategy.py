@@ -13,13 +13,18 @@ class BbRsiStrategy(BaseStrategy):
     params = (
         ('start_date', None),
         ('printlog', False),
-        ('upper_rsi', 60), # Not in use in this strategy
-        ('lower_rsi', 40),
-        ('bb_low_crossover_loss_tolerance', 5), # allow loss above this pct when bb-low is crossed
-        ('loss_pct_threshold', 100), # 100 is full loss tolerance. using values such as 10-11% made little difference. bb-bot cathes loss better
-        ('profit_protection_pct_threshold', 0), # Not in use
-        ('inflection_profit_percentage_target', 4), # Don't sell on inflection unless profit is above this value
-        ('fixed_investment_amount', 3000),
+        ('print_trade_actions', False),
+        ('upper_rsi', 60), # TODO: Remove - Not in use in this strategy
+        # buy upon close upward crosses bb-bot if rsi is below value below
+        ('lower_rsi', 44), # 44 offered the higher 5-yr profit (150k from 30k initial investment)
+        # sell when close downward crosses bb-low, but only if position loss is above this value (in %)
+        ('bb_low_crossover_loss_tolerance', 5), # Highest return when fixed investment is 4k (higher returns with 6, but requires 5.5k fixed investment)
+        # sell if loss is above this % threshold (100 is full loss tolerance)
+        ('loss_pct_threshold', 100), # using values such as 10-11% made little difference. bb-bot cathes loss better
+        ('profit_protection_pct_threshold', 0), # TODO: Remove - Not in use
+        # Sell on inflection only if profit is above this value
+        ('inflection_profit_percentage_target', 5), # 5 showed best outcome for 5 year backtest
+        ('fixed_investment_amount', 4000),
         ('single_date_to_trade', None), # date string expected (e.g. 2023-12-31)
         ('custom_callback', None),
         ('open_positions', None)
@@ -36,7 +41,7 @@ class BbRsiStrategy(BaseStrategy):
             and data.close[0] > self.b_band[name].lines.bot[0]\
             and self.rsi[name][0] < self.params.lower_rsi: # rsi below threshold
             buy_action = TradeAction(date=self.datas[0].datetime.date(0), action="BUY", ticker=name)
-            buy_action.reason = f"{name} Close ({data.close[-1]:.2f},{data.close[0]:.2f}) crossover Bollinger bottom ({self.b_band[name].lines.bot[0]:.2f}) while RSI ({self.rsi[name][0]:.2f}) below {self.params.lower_rsi:.2f}"
+            buy_action.reason = f"{name} Close ({data.close[-1]:.2f},{data.close[0]:.2f}) above Bollinger bottom ({self.b_band[name].lines.bot[0]:.2f}) while RSI ({self.rsi[name][0]:.2f}) below {self.params.lower_rsi:.2f}"
         return buy_action
 
     def buy_action(self, name):

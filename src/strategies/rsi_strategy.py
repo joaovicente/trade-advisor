@@ -13,6 +13,7 @@ class RsiStrategy(BaseStrategy):
     params = (
         ('start_date', None),
         ('printlog', False),
+        ('print_trade_actions', False),
         ('upper_rsi', 60),
         ('lower_rsi', 50),
         ('loss_pct_threshold', 5),

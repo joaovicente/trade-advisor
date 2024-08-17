@@ -20,8 +20,8 @@ def test_trade_today_with_open_position():
         
 def test_trade_today_without_open_positions():
     # TODO: Actually call the CLI method rather than replicating its logic 
-    tickers = "META"
-    today = "2024-05-06"
+    tickers = "AMD"
+    today = "2023-08-18"
     scmp = StockComputeService(tickers, today, None)
     trades = scmp.trades_today()
     assert len(trades) == 1

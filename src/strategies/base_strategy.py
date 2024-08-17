@@ -174,7 +174,8 @@ class BaseStrategy(bt.Strategy):
                     self.order[data._name] = self.buy(data=data, size=float(self.params.fixed_investment_amount / data.close[0]))
                     buy_action.context = [s.as_text() for s in self.stock_daily_stats_list[data._name][-BaseStrategy.TRADE_ACTION_CONTEXT_SIZE:]]
                     self.trade_actions.append(buy_action)
-                    print(buy_action.as_text(context=False))
+                    if self.params.print_trade_actions:
+                        print(buy_action.as_text(context=False)) 
             else:
                 # TODO: Sell when RSI crosses over RSI-based-MA comming down above RSI 60, or when position showing 10% loss
                 sell_action = self.sell_action(data._name)
@@ -185,5 +186,6 @@ class BaseStrategy(bt.Strategy):
                     self.order[data._name] = self.sell(data = data, size = self.getposition(data).size)
                     sell_action.context = [s.as_text() for s in self.stock_daily_stats_list[data._name][-BaseStrategy.TRADE_ACTION_CONTEXT_SIZE:]]
                     self.trade_actions.append(sell_action)
-                    print(sell_action.as_text(context=False))
+                    if self.params.print_trade_actions:
+                        print(sell_action.as_text(context=False))
                     

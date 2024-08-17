@@ -3,6 +3,7 @@ from schemas.portfolio_stats import AssetStats, PortfolioStats, PositionStats
 from schemas.stock_daily_stats import StockDailyStats
 from strategies.base_strategy import BaseStrategy
 from strategies.rsi_strategy import RsiStrategy
+from strategies.bbrsi_strategy import BbRsiStrategy
 
 import backtrader as bt
 import yfinance as yf
@@ -11,7 +12,7 @@ import datetime
 
 class StockComputeService:
     DEFAULT_DAILY_STATS_RETURNED = BaseStrategy.TRADE_ACTION_CONTEXT_SIZE
-    def __init__(self, tickers, todays_date_str, open_positions=None):
+    def __init__(self, tickers, todays_date_str, open_positions=None, strategy=BbRsiStrategy):
         self.todays_date_str = todays_date_str
         self.open_positions = open_positions
 
@@ -31,7 +32,7 @@ class StockComputeService:
         # Create a cerebro entity
         self.cerebro = bt.Cerebro()
         # Add a strategy
-        self.cerebro.addstrategy(RsiStrategy,
+        self.cerebro.addstrategy(strategy,
                             start_date = self.start_date,
                             printlog=False,
                             upper_rsi=60,
