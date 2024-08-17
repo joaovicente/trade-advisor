@@ -53,6 +53,10 @@ Given comma separated TICKERS, get trading advice for today
 python src/cli/cli.py trade-today --tickers SNOW
 ```
 
+```sh
+python src/cli/cli.py trade-today --tickers AAPL,ABBV,ADBE,AMD,AMZN,AVGO,BAC,BRK-B,COST,CRM,CVX,GOOG,HD,JNJ,JPM,KO,LLY,MA,META,MRK,MSFT,NFLX,NVDA,ORCL,PEP,PFE,PG,TMO,TSLA,UNH,V,WMT,XOM
+```
+
 Mock today's date as follows 
 ```sh
 python src/cli/cli.py trade-today --tickers SNOW --today 2024-05-31
