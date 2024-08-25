@@ -39,3 +39,4 @@ def test_portfolio_value():
     portfolio_stats = scmp.portfolio_stats()
     print("Portfolio stats:")
     print(portfolio_stats.portfolio_as_text())
+    

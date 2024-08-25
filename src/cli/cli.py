@@ -18,17 +18,24 @@ from services.open_position_service import OpenPositionService
               help='Show provided number of days context for each ticker', 
               show_default=True,
               default=0)
-def trade_today(tickers, today, no_pos, context):
+@click.option('--position', '-p',
+              help='Provide open positions explicitly as follows -p {date},{ticker},{size},{price} (e.g. -p 2024-07-18,META,2.09692,476.89). Call this multiple times for multiple positions',
+              multiple=True) 
+def trade_today(tickers, today, no_pos, context, position):
     """Advise on trades that should be made today"""
+    open_position_service = OpenPositionService()
+    open_positions = []
     if no_pos:
-        open_positions = []
         # use only supplied tickers
         if tickers is None:
             raise click.UsageError("tickers must be supplied when not using open positions")
     else:
-        open_positions = OpenPositionService().get_all()
+        if position: # explicitly supplied open positions
+            for p in list(position):
+                open_position_service.add_position(p)
+        open_positions = open_position_service.get_all()
         # add open positions to any supplied tickers
-        position_ticker_list = OpenPositionService().get_distinct_tickers_list()
+        position_ticker_list = open_position_service.get_distinct_tickers_list()
         # add supplied tickers
         if tickers is None:
            tickers = ','.join(position_ticker_list)
