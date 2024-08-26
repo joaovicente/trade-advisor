@@ -56,7 +56,7 @@ def trade_today(tickers, today, no_pos, context, position, output):
     response += "\n\n"
     if trades:
         for trade in trades:
-            response += trade.as_text() + "\n"
+            response += trade.as_text(context=False) + "\n"
     else:
         response += f"No trades today ({str(datetime.datetime.today().date())})\n"
         if context:
