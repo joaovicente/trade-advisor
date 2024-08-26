@@ -9,3 +9,4 @@ click
 duckdb
 pytest
 twilio
+sendgrid

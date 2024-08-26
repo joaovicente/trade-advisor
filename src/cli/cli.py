@@ -3,6 +3,7 @@ import datetime
 from services.stock_compute_service import StockComputeService
 from services.open_position_service import OpenPositionService
 from services.whatsup_notification_service import WhatsappNotificationService
+from services.email_notification_service import EmailNotificationService
 
 
 @click.command()
@@ -64,8 +65,10 @@ def trade_today(tickers, today, no_pos, context, position, output):
                 response += '\n'.join(scmp.get_stock_daily_stats_list_as_text(ticker, context))
                 response += f"\n"
     print(response)
-    if output=='whatsapp':
+    if 'whatsapp' in output:
         WhatsappNotificationService().send_message(response)
+    if 'email' in output:
+        EmailNotificationService().send_email("trade today", response)
             
 @click.command()
 @click.option('--today',
