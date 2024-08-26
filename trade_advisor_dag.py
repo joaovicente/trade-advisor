@@ -5,12 +5,12 @@ from datetime import datetime, timedelta
 
 default_args = { 
     'retries': 3,
-    'retry_delay': timedelta(minutes=30)
+    'retry_delay': timedelta(minutes=60)
     }
 
 @dag(
     start_date=datetime(2024, 8, 26), 
-    schedule_interval='0 8 * * *', 
+    schedule_interval='0 7 * * *', 
     catchup=False,
     default_args=default_args,
     tags=['joao'])
