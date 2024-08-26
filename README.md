@@ -132,6 +132,18 @@ trade-today
 portfolio-stats
 ```
 
+# Docker 
+
+## Build
+```sh
+docker build -t trade-advisor .
+```
+
+## Run
+```sh
+docker run -it trade-advisor python /app/src/cli/cli.py trade-today
+```
+
 # References
 
 * [Backtrader](https://www.backtrader.com/docu/quickstart/quickstart/#using-the-platform) for backtesting
