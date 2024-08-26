@@ -2,6 +2,7 @@ import click
 import datetime
 from services.stock_compute_service import StockComputeService
 from services.open_position_service import OpenPositionService
+from services.whatsup_notification_service import WhatsappNotificationService
 
 
 @click.command()
@@ -21,8 +22,12 @@ from services.open_position_service import OpenPositionService
 @click.option('--position', '-p',
               help='Provide open positions explicitly as follows -p {date},{ticker},{size},{price} (e.g. -p 2024-07-18,META,2.09692,476.89). Call this multiple times for multiple positions',
               multiple=True) 
-def trade_today(tickers, today, no_pos, context, position):
+@click.option('--output', '-o',
+              help='Output to either `console` (default) or whatsapp (e.g. --output=whatsapp)',
+              default='console') 
+def trade_today(tickers, today, no_pos, context, position, output):
     """Advise on trades that should be made today"""
+    response = ""
     open_position_service = OpenPositionService()
     open_positions = []
     if no_pos:
@@ -45,14 +50,22 @@ def trade_today(tickers, today, no_pos, context, position):
     scmp = StockComputeService(tickers, today, open_positions)
     trades = scmp.trades_today()
     #print(f"start_date={trades_today.start_date}, end_date={trades_today.end_date}")
+    response += f"trade-today --tickers {tickers}"
+    for open_position in open_positions:
+        response += f" -p {open_position.as_csv()}"
+    response += "\n\n"
     if trades:
         for trade in trades:
-            print(trade.as_text())
+            response += trade.as_text() + "\n"
     else:
-        print(f"No trades today ({str(datetime.datetime.today().date())})")
+        response += f"No trades today ({str(datetime.datetime.today().date())})\n"
         if context:
             for ticker in tickers.split(','):
-                print('\n'.join(scmp.get_stock_daily_stats_list_as_text(ticker, context)))
+                response += '\n'.join(scmp.get_stock_daily_stats_list_as_text(ticker, context))
+                response += f"\n"
+    print(response)
+    if output=='whatsapp':
+        WhatsappNotificationService().send_message(response)
             
 @click.command()
 @click.option('--today',
