@@ -4,7 +4,6 @@ requests
 TA-Lib
 matplotlib
 yfinance
-logging
 fastapi
 click
 duckdb
