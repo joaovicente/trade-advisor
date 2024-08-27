@@ -9,8 +9,11 @@ class TradeAction(BaseModel):
     reason : str = None
     context : str = None
 
-    def as_text(self, context=True):
-        text = f"{self.date} {self.action} {self.ticker} because {self.reason}"
+    def as_text(self, context=True, include_date=True):
+        text = ""
+        if include_date:
+            text += f"{self.date} "
+        text += f"{self.action} {self.ticker} because {self.reason}"
         if context and self.context and len(self.context) > 0 :
             text += "\nContext:\n"
             text += "\n".join(self.context)

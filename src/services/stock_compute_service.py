@@ -12,6 +12,7 @@ import datetime
 
 class StockComputeService:
     DEFAULT_DAILY_STATS_RETURNED = BaseStrategy.TRADE_ACTION_CONTEXT_SIZE
+    LOWER_RSI = 50
     def __init__(self, tickers, todays_date_str, open_positions=None, strategy=BbRsiStrategy):
         self.todays_date_str = todays_date_str
         self.open_positions = open_positions
@@ -36,7 +37,7 @@ class StockComputeService:
                             start_date = self.start_date,
                             printlog=False,
                             upper_rsi=60,
-                            lower_rsi=50,
+                            lower_rsi=StockComputeService.LOWER_RSI,
                             loss_pct_threshold = 9,
                             fixed_investment_amount=5000,
                             single_date_to_trade=self.todays_date_str,

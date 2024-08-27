@@ -2,6 +2,7 @@ import click
 import datetime
 from services.stock_compute_service import StockComputeService
 from services.open_position_service import OpenPositionService
+from services.trade_today_reporting_service import TradeTodayReportingService
 from services.whatsup_notification_service import WhatsappNotificationService
 from services.email_notification_service import EmailNotificationService
 
@@ -48,27 +49,15 @@ def trade_today(tickers, today, no_pos, context, position, output):
         else:
            supplied_ticker_list = tickers.split(',')
            tickers = ','.join(list(set(position_ticker_list + supplied_ticker_list)))
-    scmp = StockComputeService(tickers, today, open_positions)
-    trades = scmp.trades_today()
-    #print(f"start_date={trades_today.start_date}, end_date={trades_today.end_date}")
-    response += f"trade-today --tickers {tickers}"
-    for open_position in open_positions:
-        response += f" -p {open_position.as_csv()}"
-    response += "\n\n"
-    if trades:
-        for trade in trades:
-            response += trade.as_text(context=False) + "\n"
-    else:
-        response += f"No trades today ({str(datetime.datetime.today().date())})\n"
-        if context:
-            for ticker in tickers.split(','):
-                response += '\n'.join(scmp.get_stock_daily_stats_list_as_text(ticker, context))
-                response += f"\n"
-    print(response)
+    rep_svc = TradeTodayReportingService(today, tickers, open_positions, context)
+    print(rep_svc.console_report())
     if 'whatsapp' in output:
-        WhatsappNotificationService().send_message(response)
+        WhatsappNotificationService().send_message(rep_svc.whatsapp_report())
+        print("Whatsapp report sent")
     if 'email' in output:
-        EmailNotificationService().send_email("trade today", response)
+        subject, body = rep_svc.email_html_report()
+        EmailNotificationService().send_email(subject, body)
+        print("Email report sent")
             
 @click.command()
 @click.option('--today',
@@ -88,8 +77,6 @@ def portfolio_stats(today):
     print(portfolio_stats.assets_as_text())
     
     
-
-
 # Create a Click group to hold the commands
 @click.group()
 def cli():
