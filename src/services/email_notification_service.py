@@ -18,8 +18,7 @@ class EmailNotificationService:
             from_email=self.email_sender,
             to_emails=self.email_receiver,
             subject=subject,
-            plain_text_content=body,
-            #html_content=body
+            html_content=body
             )
         try:
             sg = SendGridAPIClient(self.sendgrid_api_key)
