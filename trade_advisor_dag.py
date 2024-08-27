@@ -10,7 +10,7 @@ default_args = {
 
 @dag(
     start_date=datetime(2024, 8, 26), 
-    schedule_interval='0 7 * * *', 
+    schedule_interval='0 5 * * *', # UTC
     catchup=False,
     default_args=default_args,
     tags=['joao'])
