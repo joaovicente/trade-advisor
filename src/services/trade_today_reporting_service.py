@@ -82,7 +82,7 @@ class TradeTodayReportingService():
                     rsi_style =' style="background-color: Orange;"' 
                     if stock.close < stock.bb_bot:
                         close_style =' style="background-color: Green;"' 
-                    elif stock.close < stock.bb_bot * 1.05 : # close within 5% of bb-bot
+                    elif stock.close < stock.bb_mid - ((stock.bb_mid-stock.bb_bot)/2): # close nearing bb-bot
                         close_style =' style="background-color: Orange;"' 
                     else:
                         close_style =''
