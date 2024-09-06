@@ -91,11 +91,11 @@ class TradeTodayReportingService():
                     close_style =''
                 output += "<tr>"
                 output += f"<td>{stock.ticker}</td>"
-                output += f"<td{close_style}>{round(stock.close, 2)}</td>"
-                output += f'<td{rsi_style}>{round(stock.rsi, 2)}</td>'
-                output += f"<td>{round(stock.bb_bot, 2)}</td>"
-                output += f"<td>{round(stock.bb_mid, 2)}</td>"
-                output += f"<td>{round(stock.bb_top, 2)}</td>"
+                output += f"<td{close_style}>{round(stock.close, 2):.2f}</td>"
+                output += f'<td{rsi_style}>{round(stock.rsi, 2):.2f}</td>'
+                output += f"<td>{round(stock.bb_bot, 2):.2f}</td>"
+                output += f"<td>{round(stock.bb_mid, 2):.2f}</td>"
+                output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
                 output += "</tr>"
         output += "</table>"
         # Add open positions performance
@@ -128,16 +128,16 @@ class TradeTodayReportingService():
                 output += "<tr>"
                 output += f"<td>{stock.ticker}</td>"
                 output += f"<td>{position.date}</td>"
-                output += f"<td>{round(position.size*position.price, 2)}</td>"
-                output += f"<td>{round(position.size, 2)}</td>"
-                output += f"<td>{round(position.price, 2)}</td>"
-                output += f"<td>{round(stock.close, 2)}</td>"
-                output += f'<td>{round(stock.rsi, 2)}</td>'
-                output += f"<td>{round(stock.bb_bot, 2)}</td>"
-                output += f"<td>{round(stock.bb_mid, 2)}</td>"
-                output += f"<td>{round(stock.bb_top, 2)}</td>"
-                output += f"<td>{round(stock.pnl_pct, 2)}</td>"
-                output += f"<td{pnl_style}>{round((stock.close*position.size)-(position.price*position.size), 2)}</td>"
+                output += f"<td>{round(position.size*position.price, 2):.2f}</td>"
+                output += f"<td>{round(position.size, 2):.2f}</td>"
+                output += f"<td>{round(position.price, 2):.2f}</td>"
+                output += f"<td>{round(stock.close, 2):.2f}</td>"
+                output += f'<td>{round(stock.rsi, 2):.2f}</td>'
+                output += f"<td>{round(stock.bb_bot, 2):.2f}</td>"
+                output += f"<td>{round(stock.bb_mid, 2):.2f}</td>"
+                output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
+                output += f"<td>{round((stock.close - position.price) / stock.close * 100, 2):.2f}</td>"
+                output += f"<td{pnl_style}>{round((stock.close*position.size)-(position.price*position.size), 2):.2f}</td>"
                 output += "</tr>"
         output += "</table>"
         # TODO: Remove when dev complete
