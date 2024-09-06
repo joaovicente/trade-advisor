@@ -100,8 +100,20 @@ class TradeTodayReportingService():
         output += "</table>"
         # Add open positions performance
         # Ticker, Position Date, Position price, Position size, Close, RSI, BB-Top, BB-Mid, BB-Low, PNL %, PNL
-        output += f"<h1>Position performance</h1>"
+        total_pnl = 0.0
         stock_stats_sorted_by_pnl = sorted(self.stock_stats_today, key=lambda stats: stats.pnl_pct, reverse=True)
+        for stock in stock_stats_sorted_by_pnl:
+            position = self.position_from_ticker(stock.ticker)
+            if position is not None:
+                total_pnl += ((stock.close*position.size)-(position.price*position.size))
+        if total_pnl > 0:
+            pnl_color = 'green'
+        elif total_pnl < 0:
+            pnl_color = 'red'
+        else:
+            pnl_color = 'black'
+        pnl_span = f'<span style="color: {pnl_color};">{total_pnl:.0f}</span>'
+        output += f"<h1>Position performance: PNL$ = {pnl_span}</h1>"
         output += '<table border="1">'
         output += """<tr>
                         <th>Ticker</th>
@@ -142,7 +154,7 @@ class TradeTodayReportingService():
         output += "</table>"
         # TODO: Remove when dev complete
         #with open('temp/trade_advisor_report.html', 'w') as file:
-            #file.write(output)
+        #    file.write(output)
         return(f"{len(self.trades_today)} trades today", output)
     
     def whatsapp_report(self):
