@@ -31,7 +31,7 @@ def trade_advisor_dag():
             "EMAIL_SENDER": '{{var.value.trade_advisor_email_sender}}',
             "EMAIL_RECEIVER": '{{var.value.trade_advisor_email_receiver}}'
         },
-        command="/app/src/cli/cli.py trade-today --output=email --tickers AAPL,ABBV,ADBE,AMD,AMZN,AVGO,BAC,BRK-B,COST,CRM,CVX,GOOG,HD,JNJ,JPM,KO,LLY,MA,META,MRK,MSFT,NFLX,NVDA,ORCL,PEP,PFE,PG,TMO,TSLA,UNH,V,WMT,XOM -p 2024-07-18,META,2.09692,476.89 -p 2024-07-18,GOOG,5.56917,179.56 -p 2024-07-18,NVDA,8.28706,120.67 -p 2024-07-18,AMZN,2.68962,185.90 -p 2024-07-18,MSFT,0.5328,438.16  -p 2024-09-05,CVX,17.45566,143.22"
+        command="/app/src/cli/cli.py trade-today --output=email --tickers AAPL,ABBV,ADBE,AMD,AMZN,AVGO,BAC,BRK-B,COST,CRM,CVX,GOOG,HD,JNJ,JPM,KO,LLY,MA,META,MRK,MSFT,NFLX,NVDA,ORCL,PEP,PFE,PG,TMO,TSLA,UNH,V,WMT,XOM -p 2024-07-18,META,2.09692,476.89 -p 2024-07-18,GOOG,5.56917,179.56 -p 2024-07-18,NVDA,8.28706,120.67 -p 2024-07-18,AMZN,2.68962,185.90 -p 2024-09-06,MSFT,6.21921,401.98 -p 2024-09-05,CVX,17.45566,143.22 -p 2024-09-06,AVGO,18.05054,138.50"
     )
         
     trade_advisor
