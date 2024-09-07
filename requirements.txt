@@ -10,3 +10,4 @@ duckdb
 pytest
 twilio
 sendgrid
+boto3

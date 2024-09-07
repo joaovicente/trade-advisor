@@ -11,7 +11,7 @@ class OpenPositionService:
         if len(self.cli_supplied_positions) > 0:
             return self.cli_supplied_positions
         else:
-            path = os.path.join("data", "open_position.csv")
+            path = os.path.join("data", "open_positions.csv")
             repo = OpenPositionRepository(path=path)
             positions = repo.get_all()
             return positions

@@ -1,14 +1,11 @@
 import duckdb
 
 from models.open_position import OpenPosition
+from repositories.base_repository import BaseRepository
 
-# TODO: make the following class generic to support other models
-class OpenPositionRepository:
+class OpenPositionRepository(BaseRepository):
     def __init__(self, path):
-        # Connect to an in-memory DuckDB database
-        self.conn = duckdb.connect(database=':memory:')
-        self.entity = "open_position"
-        self.path = path
+        BaseRepository.__init__(self, path)
 
     def get_all(self):
         query_result = self.conn.execute(f"SELECT * FROM read_csv_auto('{self.path}')").fetchall()
