@@ -1,10 +1,15 @@
 import click
 import datetime
+from repositories.open_position_repository import OpenPositionRepository
+from repositories.selected_tickers_repository import SelectedTickersRepository
+from repositories.user_repository import UserRepository
 from services.stock_compute_service import StockComputeService
 from services.open_position_service import OpenPositionService
 from services.trade_today_reporting_service import TradeTodayReportingService
 from services.whatsup_notification_service import WhatsappNotificationService
 from services.email_notification_service import EmailNotificationService
+import os
+import os
 
 
 @click.command()
@@ -25,30 +30,58 @@ from services.email_notification_service import EmailNotificationService
               help='Provide open positions explicitly as follows -p {date},{ticker},{size},{price} (e.g. -p 2024-07-18,META,2.09692,476.89). Call this multiple times for multiple positions',
               multiple=True) 
 @click.option('--output', '-o',
-              help='Output to either `console` (default) or whatsapp (e.g. --output=whatsapp)',
+              help='Output to either `console` (default),  `email` or `whatsapp` (e.g. --output=email)',
               default='console') 
-def trade_today(tickers, today, no_pos, context, position, output):
+@click.option('--user', '-u',
+              help='Get information for this user (e.g. email, selected_stock, open_positions, etc)',
+              default=None) 
+def trade_today(tickers, today, no_pos, context, position, output, user):
     """Advise on trades that should be made today"""
-    response = ""
-    open_position_service = OpenPositionService()
+    email_receiver = None
     open_positions = []
-    if no_pos:
-        # use only supplied tickers
-        if tickers is None:
-            raise click.UsageError("tickers must be supplied when not using open positions")
-    else:
-        if position: # explicitly supplied open positions
-            for p in list(position):
-                open_position_service.add_position(p)
-        open_positions = open_position_service.get_all()
-        # add open positions to any supplied tickers
-        position_ticker_list = open_position_service.get_distinct_tickers_list()
-        # add supplied tickers
-        if tickers is None:
-           tickers = ','.join(position_ticker_list)
+    response = ""
+    if user is not None:
+        s3_bucket = os.environ.get('TRADE_ADVISOR_S3_BUCKET', None)
+        if s3_bucket is None:
+            raise click.UsageError("TRADE_ADVISOR_S3_BUCKET environment variable not set")
+        if os.environ.get('AWS_ACCESS_KEY_ID') is None:
+            raise click.UsageError("AWS_ACCESS_KEY_ID environment variable not set")
+        if os.environ.get('AWS_SECRET_ACCESS_KEY') is None:
+            raise click.UsageError("AWS_ACCESS_KEY_ID environment variable not set")
+        pass
+        # Get user info
+        users_s3_path = f'{s3_bucket}/users/users.csv'
+        user_info = UserRepository(users_s3_path).get_by_id(user)
+        #print(user_info)
+        if user_info is not None:
+            email_receiver = user_info.email
+            # Get open_positions
+            open_positions_s3_path = f'{s3_bucket}/users/{user}/open_positions.csv'
+            open_positions = OpenPositionRepository(open_positions_s3_path).get_all()
+            # Get selected_tickers
+            selected_tickers_s3_path = f'{s3_bucket}/users/{user}/selected_tickers.csv'
+            tickers = ",".join(SelectedTickersRepository(selected_tickers_s3_path).get_all_as_list())
         else:
-           supplied_ticker_list = tickers.split(',')
-           tickers = ','.join(list(set(position_ticker_list + supplied_ticker_list)))
+            raise click.UsageError(f"user {user} not found")
+    else: 
+        open_position_service = OpenPositionService()
+        if no_pos:
+            # use only supplied tickers
+            if tickers is None:
+                raise click.UsageError("tickers must be supplied when not using open positions")
+        else:
+            if position: # explicitly supplied open positions
+                for p in list(position):
+                    open_position_service.add_position(p)
+            open_positions = open_position_service.get_all()
+            # add open positions to any supplied tickers
+            position_ticker_list = open_position_service.get_distinct_tickers_list()
+            # add supplied tickers
+            if tickers is None:
+                tickers = ','.join(position_ticker_list)
+            else:
+                supplied_ticker_list = tickers.split(',')
+                tickers = ','.join(list(set(position_ticker_list + supplied_ticker_list)))
     rep_svc = TradeTodayReportingService(today, tickers, open_positions, context)
     print(rep_svc.console_report())
     if 'whatsapp' in output:
@@ -56,7 +89,7 @@ def trade_today(tickers, today, no_pos, context, position, output):
         print("Whatsapp report sent")
     if 'email' in output:
         subject, body = rep_svc.email_html_report()
-        EmailNotificationService().send_email(subject, body)
+        EmailNotificationService(email_receiver=email_receiver).send_email(subject, body)
         print("Email report sent")
             
 @click.command()

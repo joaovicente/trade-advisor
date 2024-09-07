@@ -6,10 +6,13 @@ from sendgrid.helpers.mail import Mail
 # https://github.com/sendgrid/sendgrid-python
 
 class EmailNotificationService:
-    def __init__(self):
+    def __init__(self, email_receiver=None):
         self.sendgrid_api_key = os.environ.get('SENDGRID_API_KEY', None)
         self.email_sender = os.environ.get('EMAIL_SENDER', None)
-        self.email_receiver = os.environ.get('EMAIL_RECEIVER', None)
+        if email_receiver is not None:
+            self.email_receiver = email_receiver
+        else:
+            self.email_receiver = os.environ.get('EMAIL_RECEIVER', None)
         if any([self.sendgrid_api_key is None, self.email_sender is None, self.email_receiver is None]):
             raise Exception('Missing environment variables SENDGRID_API_KEY, EMAIL_SENDER, EMAIL_RECEIVER')
 
