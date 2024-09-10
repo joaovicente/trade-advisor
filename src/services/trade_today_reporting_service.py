@@ -133,7 +133,8 @@ class TradeTodayReportingService():
         for stock in stock_stats_sorted_by_pnl:
             position = self.position_from_ticker(stock.ticker)
             if position is not None:
-                if stock.pnl_pct > 0:
+                pnl = round((stock.close*position.size)-(position.price*position.size), 2)
+                if pnl > 0:
                     pnl_style =' style="background-color: Green;"' 
                 else:
                     pnl_style =' style="background-color: Red;"' 
@@ -149,7 +150,7 @@ class TradeTodayReportingService():
                 output += f"<td>{round(stock.bb_mid, 2):.2f}</td>"
                 output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
                 output += f"<td>{round((stock.close - position.price) / stock.close * 100, 2):.2f}</td>"
-                output += f"<td{pnl_style}>{round((stock.close*position.size)-(position.price*position.size), 2):.2f}</td>"
+                output += f"<td{pnl_style}>{pnl:.2f}</td>"
                 output += "</tr>"
         output += "</table>"
         # TODO: Remove when dev complete
