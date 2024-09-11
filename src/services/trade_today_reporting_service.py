@@ -65,7 +65,7 @@ class TradeTodayReportingService():
         else:
             output += f"<p>No trades today ({str(datetime.datetime.today().date())})</p>"
         # Stock stats
-        output += f"<h1>Watched stock statistics</h1>"
+        output += f"<h1>Selected tickers statistics</h1>"
         output += '<table border="1">'
         output += """<tr>
                         <th>Ticker</th>
