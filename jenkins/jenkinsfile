@@ -1,0 +1,33 @@
+pipeline {
+    agent {
+        docker {
+            image 'python:3.10-slim'
+        }
+    }
+    stages {
+        stage('Build ta-lib dependency') {
+            steps {
+                sh 'cd /tmp'
+                sh 'apt-get update'
+                sh 'apt-get install -y wget tar gcc make'
+                sh 'wget https://sourceforge.net/projects/ta-lib/files/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz'
+                sh 'tar -xzf ta-lib-0.4.0-src.tar.gz'
+                sh 'cd /tmp/ta-lib'
+                sh './configure --prefix=/usr'
+                sh 'make'
+                sh 'make install'
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'pip install --upgrade'
+                sh 'pip install -r requirements.txt'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'pytest'
+            }
+        }
+    }
+}
