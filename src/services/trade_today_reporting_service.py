@@ -68,6 +68,7 @@ class TradeTodayReportingService():
                         <th>Ticker</th>
                         <th>Close</th>
                         <th>RSI</th>
+                        <th>Growth Range</th>
                         <th>BB-Bot</th>
                         <th>BB-Mid</th>
                         <th>BB-Top</th>
@@ -75,26 +76,42 @@ class TradeTodayReportingService():
         for stock in self.stock_stats_today:
             # exclude stocks with open positions
             if self.position_from_ticker(stock.ticker) is None:
+                growth_potential = round((stock.bb_top - stock.bb_bot) / stock.bb_bot * 100, 1)
                 if stock.rsi < StockComputeService.LOWER_RSI:
                     rsi_style =' style="background-color: Orange;"' 
+                    # Close styling
                     if stock.close < stock.bb_bot:
                         close_style =' style="background-color: Green;"' 
                     elif stock.close < stock.bb_mid - ((stock.bb_mid-stock.bb_bot)/2): # close nearing bb-bot
                         close_style =' style="background-color: Orange;"' 
                     else:
                         close_style =''
+                    # Growth Potential styling
+                    if growth_potential > 5 and growth_potential < 10:
+                        growth_potential_style =' style="background-color: Orange;"'
+                    if growth_potential > 10:
+                        growth_potential_style =' style="background-color: Green;"'
                 else:
                     rsi_style =''
                     close_style =''
+                    growth_potential_style =' style="background-color: Gray;"'
                 output += "<tr>"
                 output += f"<td>{stock.ticker}</td>"
                 output += f"<td{close_style}>{round(stock.close, 2):.2f}</td>"
                 output += f'<td{rsi_style}>{round(stock.rsi, 2):.2f}</td>'
+                output += f'<td{growth_potential_style}>{growth_potential:.1f}%</td>'
                 output += f"<td>{round(stock.bb_bot, 2):.2f}</td>"
                 output += f"<td>{round(stock.bb_mid, 2):.2f}</td>"
                 output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
                 output += "</tr>"
         output += "</table>"
+        rsi = '<a href="https://www.investopedia.com/terms/r/rsi.asp">RSI</a>'
+        bb = '<a href="https://www.investopedia.com/terms/b/bollingerbands.asp">BB</a>'
+        output += f'<p style="font-size=12px; line-height: 0.8;"><i>{rsi}</i> shows orange when it goes below {StockComputeService.LOWER_RSI}</p>'
+        output += f'<p style="font-size=12px; line-height: 0.8;"><i>Close</i> shows orange when approaching <i>{bb}-Bot</i>, and green when it goes below <i>{bb}-Bot</i></p>'
+        output += f'<p style="font-size=12px; line-height: 0.8;"><i>Growth Range</i> Indicates how high stock price might go in the short term (applicable only when <i>Close</i> near or below <i>{bb}-Bot</i>)</p>'
+        output += f'<p style="font-size=12px; line-height: 0.8;"><i>Growth Range</i> will show orange if above 5% and green if above 10%</p>'
+        output += f'<p style="font-size=12px; line-height: 0.8;"><i>Growth Range</i> will show gray if <i>Close</i> not near <i>{bb}-Bot</i> as price is not at the bottom of the growth band</p>'
         return output
         
     def position_performance_html_section(self):
