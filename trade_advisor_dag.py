@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 default_args = { 
     'retries': 3,
-    'retry_delay': timedelta(minutes=60)
+    'retry_delay': timedelta(minutes=10)
     }
 
 def get_user_list():
