@@ -108,17 +108,60 @@ def portfolio_stats(today):
     
     print(f"Portfolio on {str(datetime.datetime.today().date())}: {portfolio_stats.portfolio_as_text()}")
     print(portfolio_stats.assets_as_text())
+
+def validate_download_upload_requirements():
+    if os.environ.get('AWS_ACCESS_KEY_ID', None) is None:
+        raise click.UsageError("AWS_ACCESS_KEY_ID must be set")
+    if os.environ.get('AWS_SECRET_ACCESS_KEY', None) is None:
+        raise click.UsageError("AWS_SECRET_ACCESS_KEY must be set")
+
+def get_s3_prefix():
+    s3_prefix = os.environ.get('TRADE_ADVISOR_S3_BUCKET', None)
+    if s3_prefix is None:
+        raise click.UsageError("TRADE_ADVISOR_S3_BUCKET environment variable not set")
+    return s3_prefix
+
+def check_aws_cli_installed():
+    if os.system(f"which aws > /dev/null 2>&1") != 0:
+        raise click.UsageError("You must install awscli as per https://docs.aws.amazon.com/cli/v1/userguide/install-macos.html#install-macosos-bundled-no-sudo")
+        
+
+@click.command()
+@click.option('--user', '-u', 
+              required=True,
+              help='Download data for a given user into ./local_storage')
+def download(user):
+    """download data for a given user"""
+    s3_prefix = get_s3_prefix()
+    check_aws_cli_installed()
+    validate_download_upload_requirements()
+    command = f"aws s3 sync {s3_prefix}/users/{user} ./local_storage/users/{user}"
+    print(command)
+    os.system(command)
     
+@click.command()
+@click.option('--user', '-u', 
+              required=True,
+              help='Upload data for a given user from ./local_storage. Files in local storage must be structured as follows ./local_storage/users/username/file, where username is your trade-advisor username and files supported are selected_tickers.csv, open_positions.csv and closed_positions.csv')
+def upload(user):
+    """upload data for a given user"""
+    s3_prefix = get_s3_prefix()
+    check_aws_cli_installed()
+    validate_download_upload_requirements()
+    command = f"aws s3 sync ./local_storage/users/{user} {s3_prefix}/users/{user}"
+    print(command)
+    os.system(command)
     
 # Create a Click group to hold the commands
 @click.group()
 def cli():
     pass
 
-
 # Add the commands to the group
 cli.add_command(trade_today)
 cli.add_command(portfolio_stats)
+cli.add_command(download)
+cli.add_command(upload)
 
 if __name__ == "__main__":
     cli()

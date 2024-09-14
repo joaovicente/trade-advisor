@@ -53,3 +53,4 @@ python-env-tools/**
 temp
 *.swp
 temp.csv
+local_storage
