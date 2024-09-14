@@ -109,6 +109,7 @@ class TradeTodayReportingService():
         bb = '<a href="https://www.investopedia.com/terms/b/bollingerbands.asp">BB</a>'
         output += f'<p style="font-size=12px; line-height: 0.8;"><i>{rsi}</i> shows orange when it goes below {StockComputeService.LOWER_RSI}</p>'
         output += f'<p style="font-size=12px; line-height: 0.8;"><i>Close</i> shows orange when approaching <i>{bb}-Bot</i>, and green when it goes below <i>{bb}-Bot</i></p>'
+        output += f'<p style="font-size=12px; line-height: 0.8;"><i>Close</i> going green is a sign of likely reversal of downwards trend. Excplicit recommendation to buy will only occur when Close crosses above {bb}-Bot but this also means some potential gains may be lost if the price increases rapidly once reversal occurs</p>'
         output += f'<p style="font-size=12px; line-height: 0.8;"><i>Growth Range</i> Indicates how high stock price might go in the short term (applicable only when <i>Close</i> near or below <i>{bb}-Bot</i>)</p>'
         output += f'<p style="font-size=12px; line-height: 0.8;"><i>Growth Range</i> will show orange if above 5% and green if above 10%</p>'
         output += f'<p style="font-size=12px; line-height: 0.8;"><i>Growth Range</i> will show gray if <i>Close</i> not near <i>{bb}-Bot</i> as price is not at the bottom of the growth band</p>'
