@@ -105,14 +105,15 @@ class TradeTodayReportingService():
                 output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
                 output += "</tr>"
         output += "</table>"
-        rsi = '<a href="https://www.investopedia.com/terms/r/rsi.asp">RSI</a>'
-        bb = '<a href="https://www.investopedia.com/terms/b/bollingerbands.asp">BB</a>'
-        output += f'<p style="font-size=12px; line-height: 0.8;"><i>{rsi}</i> shows orange when it goes below {StockComputeService.LOWER_RSI}</p>'
-        output += f'<p style="font-size=12px; line-height: 0.8;"><i>Close</i> shows orange when approaching <i>{bb}-Bot</i>, and green when it goes below <i>{bb}-Bot</i></p>'
-        output += f'<p style="font-size=12px; line-height: 0.8;"><i>Close</i> going green is a sign of likely reversal of downwards trend. Excplicit recommendation to buy will only occur when Close crosses above {bb}-Bot but this also means some potential gains may be lost if the price increases rapidly once reversal occurs</p>'
-        output += f'<p style="font-size=12px; line-height: 0.8;"><i>Growth Range</i> Indicates how high stock price might go in the short term (applicable only when <i>Close</i> near or below <i>{bb}-Bot</i>)</p>'
-        output += f'<p style="font-size=12px; line-height: 0.8;"><i>Growth Range</i> will show orange if above 5% and green if above 10%</p>'
-        output += f'<p style="font-size=12px; line-height: 0.8;"><i>Growth Range</i> will show gray if <i>Close</i> not near <i>{bb}-Bot</i> as price is not at the bottom of the growth band</p>'
+        p_open = '<p style="font-size=12px; line-height: 0.8;">'
+        output += f'{p_open}<b>RSI:</b><a href="https://www.investopedia.com/terms/r/rsi.asp"> Relative Strength Index</a></p>'
+        output += f'{p_open}<b>BB:</b><a href="https://www.investopedia.com/terms/b/bollingerbands.asp"> Bollinger Band</a></p>'
+        output += f'{p_open}<i>Close</i> shows green as a sign of likely reversal of downwards trend (<i>Close</i> < <i>BB-Bot</i>). Explicit recommendation to buy will only occur when <i>Close</i> crosses above <i>BB-Bot</i> but this also means some potential gains may be lost if the price increases rapidly once reversal occurs. There is however no guarantee price will go up at this point. It could always keep going down. Do further research on the stock before opening a position on it.</p>'
+        output += f'{p_open}<i>Close</i> shows orange when approaching <i>BB-Bot</i>, more specifically <i>Close</i> is in the lower half of [<i>BB-Bot</i>..<i>BB-Mid</i>] range. Meaning start researching this stock</p>'
+        output += f'{p_open}<i>RSI</i> shows orange when it goes below {StockComputeService.LOWER_RSI}, meaning it is oversold</p>'
+        output += f'{p_open}<i>Growth Range</i> Indicates how high stock price might go in the short term (applicable only when <i>Close</i> near or below <i>BB-Bot</i>)</p>'
+        output += f'{p_open}<i>Growth Range</i> will show orange if above 5% and green if above 10%</p>'
+        output += f'{p_open}<i>Growth Range</i> will show gray if <i>Close</i> not near <i>BB-Bot</i> as price is not at the bottom of the growth band</p>'
         return output
         
     def position_performance_html_section(self):
