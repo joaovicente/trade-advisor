@@ -50,14 +50,9 @@ class TradeTodayReportingService():
             if open_position.ticker == ticker:
                 return open_position
         return None
-    
-    def email_html_report(self):
+   
+    def trades_today_html_section(self):
         output = ""
-        output += f"<p>Report for {self.user.capitalize()}</p>"
-        # CLI command
-        output += f"<h1>Execution Command</h1>"
-        output += f"<p>{self.cli_command}</p>"
-        # Trades today
         output += f"<h1>Trades today</h1>"
         if self.trades_today:
             output += "<ul>"
@@ -100,62 +95,77 @@ class TradeTodayReportingService():
                 output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
                 output += "</tr>"
         output += "</table>"
+        return output
+        
+    def position_performance_html_section(self):
+        output = ""
+        total_pnl = 0.0
+        stock_stats_sorted_by_pnl = sorted(self.stock_stats_today, key=lambda stats: stats.pnl_pct, reverse=True)
+        for stock in stock_stats_sorted_by_pnl:
+            position = self.position_from_ticker(stock.ticker)
+            if position is not None:
+                total_pnl += ((stock.close*position.size)-(position.price*position.size))
+        if total_pnl > 0:
+            pnl_color = 'green'
+        elif total_pnl < 0:
+            pnl_color = 'red'
+        else:
+            pnl_color = 'black'
+        pnl_span = f'<span style="color: {pnl_color};">{total_pnl:.0f}</span>'
+        output += f"<h1>Position performance: PNL$ = {pnl_span}</h1>"
+        output += '<table border="1">'
+        output += """<tr>
+                        <th>Ticker</th>
+                        <th>Position date</th>
+                        <th>Investment</th>
+                        <th>Position size</th>
+                        <th>Position price</th>
+                        <th>Close</th>
+                        <th>RSI</th>
+                        <th>BB-Bot</th>
+                        <th>BB-Mid</th>
+                        <th>BB-Top</th>
+                        <th>PNL %</th>
+                        <th>PNL</th>
+                    <tr>"""
+        # exclude stocks with open positions
+        for stock in stock_stats_sorted_by_pnl:
+            position = self.position_from_ticker(stock.ticker)
+            if position is not None:
+                pnl = round((stock.close*position.size)-(position.price*position.size), 2)
+                if pnl > 0:
+                    pnl_style =' style="background-color: Green;"' 
+                else:
+                    pnl_style =' style="background-color: Red;"' 
+                output += "<tr>"
+                output += f"<td>{stock.ticker}</td>"
+                output += f"<td>{position.date}</td>"
+                output += f"<td>{round(position.size*position.price, 2):.2f}</td>"
+                output += f"<td>{round(position.size, 2):.2f}</td>"
+                output += f"<td>{round(position.price, 2):.2f}</td>"
+                output += f"<td>{round(stock.close, 2):.2f}</td>"
+                output += f'<td>{round(stock.rsi, 2):.2f}</td>'
+                output += f"<td>{round(stock.bb_bot, 2):.2f}</td>"
+                output += f"<td>{round(stock.bb_mid, 2):.2f}</td>"
+                output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
+                output += f"<td>{round((stock.close - position.price) / stock.close * 100, 2):.2f}</td>"
+                output += f"<td{pnl_style}>{pnl:.2f}</td>"
+                output += "</tr>"
+        output += "</table>"
+        return output
+    
+    def email_html_report(self):
+        output = ""
+        output += f"<p>Report for {self.user.capitalize()}</p>"
+        # CLI command
+        output += f"<h1>Execution Command</h1>"
+        output += f"<p>{self.cli_command}</p>"
+        # Trades today
+        output += self.trades_today_html_section()
         # Add open positions performance
         # Ticker, Position Date, Position price, Position size, Close, RSI, BB-Top, BB-Mid, BB-Low, PNL %, PNL
         if self.open_positions:
-            total_pnl = 0.0
-            stock_stats_sorted_by_pnl = sorted(self.stock_stats_today, key=lambda stats: stats.pnl_pct, reverse=True)
-            for stock in stock_stats_sorted_by_pnl:
-                position = self.position_from_ticker(stock.ticker)
-                if position is not None:
-                    total_pnl += ((stock.close*position.size)-(position.price*position.size))
-            if total_pnl > 0:
-                pnl_color = 'green'
-            elif total_pnl < 0:
-                pnl_color = 'red'
-            else:
-                pnl_color = 'black'
-            pnl_span = f'<span style="color: {pnl_color};">{total_pnl:.0f}</span>'
-            output += f"<h1>Position performance: PNL$ = {pnl_span}</h1>"
-            output += '<table border="1">'
-            output += """<tr>
-                            <th>Ticker</th>
-                            <th>Position date</th>
-                            <th>Investment</th>
-                            <th>Position size</th>
-                            <th>Position price</th>
-                            <th>Close</th>
-                            <th>RSI</th>
-                            <th>BB-Bot</th>
-                            <th>BB-Mid</th>
-                            <th>BB-Top</th>
-                            <th>PNL %</th>
-                            <th>PNL</th>
-                        <tr>"""
-            # exclude stocks with open positions
-            for stock in stock_stats_sorted_by_pnl:
-                position = self.position_from_ticker(stock.ticker)
-                if position is not None:
-                    pnl = round((stock.close*position.size)-(position.price*position.size), 2)
-                    if pnl > 0:
-                        pnl_style =' style="background-color: Green;"' 
-                    else:
-                        pnl_style =' style="background-color: Red;"' 
-                    output += "<tr>"
-                    output += f"<td>{stock.ticker}</td>"
-                    output += f"<td>{position.date}</td>"
-                    output += f"<td>{round(position.size*position.price, 2):.2f}</td>"
-                    output += f"<td>{round(position.size, 2):.2f}</td>"
-                    output += f"<td>{round(position.price, 2):.2f}</td>"
-                    output += f"<td>{round(stock.close, 2):.2f}</td>"
-                    output += f'<td>{round(stock.rsi, 2):.2f}</td>'
-                    output += f"<td>{round(stock.bb_bot, 2):.2f}</td>"
-                    output += f"<td>{round(stock.bb_mid, 2):.2f}</td>"
-                    output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
-                    output += f"<td>{round((stock.close - position.price) / stock.close * 100, 2):.2f}</td>"
-                    output += f"<td{pnl_style}>{pnl:.2f}</td>"
-                    output += "</tr>"
-            output += "</table>"
+            output += self.position_performance_html_section()
         # TODO: Remove when dev complete
         #with open('temp/trade_advisor_report.html', 'w') as file:
         #    file.write(output)
