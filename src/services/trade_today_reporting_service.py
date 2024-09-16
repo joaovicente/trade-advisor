@@ -1,4 +1,5 @@
 import datetime
+from services.runtime_stock_stats_service import RuntimeStockStatsService
 from services.stock_compute_service import StockComputeService
 import matplotlib.ticker as ticker
 import matplotlib.ticker as ticker
@@ -68,20 +69,24 @@ class TradeTodayReportingService():
                         <th>Ticker</th>
                         <th>Close</th>
                         <th>RSI</th>
+                        <th>P/E ratio</th>
                         <th>Growth Range</th>
                         <th>BB-Bot</th>
                         <th>BB-Mid</th>
                         <th>BB-Top</th>
                     <tr>"""
+        ticker_list = [stock.ticker for stock in self.stock_stats_today]
+        runtime_stock_stats_service = RuntimeStockStatsService(ticker_list)
         for stock in self.stock_stats_today:
             # exclude stocks with open positions
             if self.position_from_ticker(stock.ticker) is None:
                 growth_potential = round((stock.bb_top - stock.bb_bot) / stock.bb_bot * 100, 1)
+                pe_ratio = runtime_stock_stats_service.pe_ratio(stock.ticker)
                 if stock.rsi < StockComputeService.LOWER_RSI:
-                    rsi_style =' style="background-color: Orange;"' 
+                    rsi_style =' style="background-color: Green;"' 
                     # Close styling
                     if stock.close < stock.bb_bot:
-                        close_style =' style="background-color: Green;"' 
+                        close_style =' style="background-color: Green;"'
                     elif stock.close < stock.bb_mid - ((stock.bb_mid-stock.bb_bot)/2): # close nearing bb-bot
                         close_style =' style="background-color: Orange;"' 
                     else:
@@ -91,14 +96,23 @@ class TradeTodayReportingService():
                         growth_potential_style =' style="background-color: Orange;"'
                     if growth_potential > 10:
                         growth_potential_style =' style="background-color: Green;"'
+                    # PE ratio styling
+                    if pe_ratio > 0 and pe_ratio < 15:
+                        pe_ratio_style =' style="background-color: Green;"'
+                    elif pe_ratio >= 15 and pe_ratio < 50:
+                        pe_ratio_style =''
+                    else:
+                        pe_ratio_style =' style="background-color: Red;"'
                 else:
                     rsi_style =''
                     close_style =''
                     growth_potential_style =' style="background-color: Gray;"'
+                    pe_ratio_style =''
                 output += "<tr>"
                 output += f"<td>{stock.ticker}</td>"
                 output += f"<td{close_style}>{round(stock.close, 2):.2f}</td>"
                 output += f'<td{rsi_style}>{round(stock.rsi, 2):.2f}</td>'
+                output += f'<td{pe_ratio_style}>{pe_ratio:.2f}</td>'
                 output += f'<td{growth_potential_style}>{growth_potential:.1f}%</td>'
                 output += f"<td>{round(stock.bb_bot, 2):.2f}</td>"
                 output += f"<td>{round(stock.bb_mid, 2):.2f}</td>"
@@ -110,7 +124,7 @@ class TradeTodayReportingService():
         output += f'{p_open}<b>BB:</b><a href="https://www.investopedia.com/terms/b/bollingerbands.asp"> Bollinger Band</a></p>'
         output += f'{p_open}<i>Close</i> shows green as a sign of likely reversal of downwards trend (<i>Close</i> < <i>BB-Bot</i>). Explicit recommendation to buy will only occur when <i>Close</i> crosses above <i>BB-Bot</i> but this also means some potential gains may be lost if the price increases rapidly once reversal occurs. There is however no guarantee price will go up at this point. It could always keep going down. Do further research on the stock before opening a position on it.</p>'
         output += f'{p_open}<i>Close</i> shows orange when approaching <i>BB-Bot</i>, more specifically <i>Close</i> is in the lower half of [<i>BB-Bot</i>..<i>BB-Mid</i>] range. Meaning start researching this stock</p>'
-        output += f'{p_open}<i>RSI</i> shows orange when it goes below {StockComputeService.LOWER_RSI}, meaning it is oversold</p>'
+        output += f'{p_open}<i>RSI</i> shows green when it goes below {StockComputeService.LOWER_RSI}, meaning it is oversold</p>'
         output += f'{p_open}<i>Growth Range</i> Indicates how high stock price might go in the short term (applicable only when <i>Close</i> near or below <i>BB-Bot</i>)</p>'
         output += f'{p_open}<i>Growth Range</i> will show orange if above 5% and green if above 10%</p>'
         output += f'{p_open}<i>Growth Range</i> will show gray if <i>Close</i> not near <i>BB-Bot</i> as price is not at the bottom of the growth band</p>'
@@ -119,6 +133,8 @@ class TradeTodayReportingService():
     def position_performance_html_section(self):
         output = ""
         total_pnl = 0.0
+        ticker_list = [stock.ticker for stock in self.stock_stats_today]
+        runtime_stock_stats_service = RuntimeStockStatsService(ticker_list)
         stock_stats_sorted_by_pnl = sorted(self.stock_stats_today, key=lambda stats: stats.pnl_pct, reverse=True)
         for stock in stock_stats_sorted_by_pnl:
             position = self.position_from_ticker(stock.ticker)
@@ -141,6 +157,7 @@ class TradeTodayReportingService():
                         <th>Position price</th>
                         <th>Close</th>
                         <th>RSI</th>
+                        <th>P/E Ratio</th>
                         <th>BB-Bot</th>
                         <th>BB-Mid</th>
                         <th>BB-Top</th>
@@ -149,6 +166,7 @@ class TradeTodayReportingService():
                     <tr>"""
         # exclude stocks with open positions
         for stock in stock_stats_sorted_by_pnl:
+            pe_ratio = runtime_stock_stats_service.pe_ratio(stock.ticker)
             position = self.position_from_ticker(stock.ticker)
             if position is not None:
                 pnl = round((stock.close*position.size)-(position.price*position.size), 2)
@@ -164,6 +182,7 @@ class TradeTodayReportingService():
                 output += f"<td>{round(position.price, 2):.2f}</td>"
                 output += f"<td>{round(stock.close, 2):.2f}</td>"
                 output += f'<td>{round(stock.rsi, 2):.2f}</td>'
+                output += f'<td>{pe_ratio:.2f}</td>'
                 output += f"<td>{round(stock.bb_bot, 2):.2f}</td>"
                 output += f"<td>{round(stock.bb_mid, 2):.2f}</td>"
                 output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
@@ -187,7 +206,7 @@ class TradeTodayReportingService():
             output += self.position_performance_html_section()
         # TODO: Remove when dev complete
         #with open('temp/trade_advisor_report.html', 'w') as file:
-        #    file.write(output)
+            #file.write(output)
         return(f"{len(self.trades_today)} trades today", output)
     
     def whatsapp_report(self):
