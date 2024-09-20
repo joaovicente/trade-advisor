@@ -215,7 +215,7 @@ class TradeTodayReportingService():
         output += "</table>"
         return output
     
-    def email_html_report(self, simulation):
+    def email_html_report(self, simulation=False):
         output = ""
         output += f"<p>Report for {self.user.capitalize()}</p>"
         # CLI command
