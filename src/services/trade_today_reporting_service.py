@@ -1,17 +1,15 @@
 import datetime
 from services.runtime_stock_stats_service import RuntimeStockStatsService
 from services.stock_compute_service import StockComputeService
-import matplotlib.ticker as ticker
-import matplotlib.ticker as ticker
-
 
 class TradeTodayReportingService():
-    def __init__(self, today, tickers, open_positions, context, user="unknown"):
+    def __init__(self, today, tickers, open_positions, closed_positions, context, user="unknown"):
         self.cli_command = ""
         self.trades_today = []
         self.stock_stats_today = []
         self.context = context
         self.open_positions = open_positions
+        self.closed_positions = closed_positions
         self.user = user
         svc = StockComputeService(tickers, today, open_positions)
         trades = svc.trades_today()
@@ -94,8 +92,10 @@ class TradeTodayReportingService():
                     # Growth Potential styling
                     if growth_potential > 5 and growth_potential < 10:
                         growth_potential_style =' style="background-color: Orange;"'
-                    if growth_potential > 10:
+                    elif growth_potential > 10:
                         growth_potential_style =' style="background-color: Green;"'
+                    else:
+                        growth_potential_style =''
                     # PE ratio styling
                     if pe_ratio > 0 and pe_ratio < 15:
                         pe_ratio_style =' style="background-color: Green;"'
@@ -130,7 +130,7 @@ class TradeTodayReportingService():
         output += f'{p_open}<i>Growth Range</i> will show gray if <i>Close</i> not near <i>BB-Bot</i> as price is not at the bottom of the growth band</p>'
         return output
         
-    def position_performance_html_section(self):
+    def open_position_performance_html_section(self):
         output = ""
         total_pnl = 0.0
         ticker_list = [stock.ticker for stock in self.stock_stats_today]
@@ -192,7 +192,30 @@ class TradeTodayReportingService():
         output += "</table>"
         return output
     
-    def email_html_report(self):
+    def closed_position_performance_html_section(self):
+        output = ""
+        pnl_all_time = 0.0
+        output += f"<h1>Closed position performance</h1>"
+        output += '<table border="1">'
+        output += """<tr>
+                        <th>PNL all time</th>
+                        <th>Batting average</th>
+                        <th>PNL year to date</th>
+                        <th>PNL Jan - Nov</th>
+                        <th>PNL Nov - Dec</th>
+                    <tr>"""
+        for pos in self.closed_positions:
+            pnl_all_time += (pos.closed_price * pos.size) - (pos.price * pos.size) 
+        output += "<tr>"
+        output += f"<td>{pnl_all_time:.0f}</td>"
+        output += f"<td></td>"
+        output += f"<td></td>"
+        output += f"<td></td>"
+        output += f"<td></td>"
+        output += "</table>"
+        return output
+    
+    def email_html_report(self, simulation):
         output = ""
         output += f"<p>Report for {self.user.capitalize()}</p>"
         # CLI command
@@ -203,10 +226,13 @@ class TradeTodayReportingService():
         # Add open positions performance
         # Ticker, Position Date, Position price, Position size, Close, RSI, BB-Top, BB-Mid, BB-Low, PNL %, PNL
         if self.open_positions:
-            output += self.position_performance_html_section()
-        # TODO: Remove when dev complete
-        #with open('temp/trade_advisor_report.html', 'w') as file:
-            #file.write(output)
+            output += self.open_position_performance_html_section()
+        if self.closed_positions:
+            output += self.closed_position_performance_html_section()
+            
+        if simulation:
+            with open('temp/trade_advisor_report.html', 'w') as file:
+                file.write(output)
         return(f"{len(self.trades_today)} trades today", output)
     
     def whatsapp_report(self):

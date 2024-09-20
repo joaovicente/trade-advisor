@@ -1,5 +1,6 @@
 import click
 import datetime
+from repositories.closed_position_repository import ClosedPositionRepository
 from repositories.open_position_repository import OpenPositionRepository
 from repositories.selected_tickers_repository import SelectedTickersRepository
 from repositories.user_repository import UserRepository
@@ -61,6 +62,9 @@ def trade_today(tickers, today, no_pos, context, position, output, user):
             # Get selected_tickers
             selected_tickers_s3_path = f'{s3_bucket}/users/{user}/selected_tickers.csv'
             tickers = ",".join(SelectedTickersRepository(selected_tickers_s3_path).get_all_as_list())
+            # Get closed_positions
+            closed_positions_s3_path = f'{s3_bucket}/users/{user}/closed_positions.csv'
+            closed_positions = ClosedPositionRepository(closed_positions_s3_path).get_all()
         else:
             raise click.UsageError(f"user {user} not found")
     else: 
@@ -82,15 +86,19 @@ def trade_today(tickers, today, no_pos, context, position, output, user):
             else:
                 supplied_ticker_list = tickers.split(',')
                 tickers = ','.join(list(set(position_ticker_list + supplied_ticker_list)))
-    rep_svc = TradeTodayReportingService(today, tickers, open_positions, context, user)
+    rep_svc = TradeTodayReportingService(today, tickers, open_positions, closed_positions, context, user)
     print(rep_svc.console_report())
     if 'whatsapp' in output:
         WhatsappNotificationService().send_message(rep_svc.whatsapp_report())
         print("Whatsapp report sent")
-    if 'email' in output:
+    elif 'email' in output:
         subject, body = rep_svc.email_html_report()
         EmailNotificationService(email_receiver=email_receiver).send_email(subject, body)
         print("Email report sent")
+    elif 'file' in output:
+        subject, body = rep_svc.email_html_report(simulation=True)
+        print("Email report written to file")
+    
             
 @click.command()
 @click.option('--today',
