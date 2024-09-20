@@ -14,7 +14,7 @@ def get_user_list():
 
 @dag(
     start_date=datetime(2024, 8, 26), 
-    schedule_interval='0 5 * * 1-5', # every weekday at 5AM (UTC) 
+    schedule_interval='0 4 * * 1-5', # every weekday at 4AM (UTC) 
     catchup=False,
     default_args=default_args,
     tags=['joao'])
