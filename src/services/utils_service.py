@@ -6,3 +6,6 @@ def parse_date(date_string):
 
 def today_as_str():
     return str(datetime.today().date())
+
+def todays_date():
+    return datetime.today().date()

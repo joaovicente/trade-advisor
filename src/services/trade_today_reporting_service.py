@@ -74,6 +74,7 @@ class TradeTodayReportingService():
                         <th>BB-Bot</th>
                         <th>BB-Mid</th>
                         <th>BB-Top</th>
+                        <th>Earnings in Days</th>
                     <tr>"""
         ticker_list = [stock.ticker for stock in self.stock_stats_today]
         runtime_stock_stats_service = RuntimeStockStatsService(ticker_list)
@@ -82,6 +83,7 @@ class TradeTodayReportingService():
             if self.position_from_ticker(stock.ticker) is None:
                 growth_potential = round((stock.bb_top - stock.bb_bot) / stock.bb_bot * 100, 1)
                 pe_ratio = runtime_stock_stats_service.pe_ratio(stock.ticker)
+                days_till_earnings = runtime_stock_stats_service.next_earnings_call_in_days(stock.ticker)
                 if stock.rsi < StockComputeService.LOWER_RSI:
                     rsi_style =' style="background-color: Green;"' 
                     # Close styling
@@ -105,11 +107,17 @@ class TradeTodayReportingService():
                         pe_ratio_style =''
                     else:
                         pe_ratio_style =' style="background-color: Red;"'
+                    if days_till_earnings < 6:
+                        days_till_earnings_style =' style="background-color: Green;"' 
+                    else:
+                        days_till_earnings_style ='' 
                 else:
                     rsi_style =''
                     close_style =''
                     growth_potential_style =' style="background-color: Gray;"'
                     pe_ratio_style =''
+                    days_till_earnings_style ='' 
+                        
                 output += "<tr>"
                 output += f"<td>{stock.ticker}</td>"
                 output += f"<td{close_style}>{round(stock.close, 2):.2f}</td>"
@@ -119,6 +127,7 @@ class TradeTodayReportingService():
                 output += f"<td>{round(stock.bb_bot, 2):.2f}</td>"
                 output += f"<td>{round(stock.bb_mid, 2):.2f}</td>"
                 output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
+                output += f"<td {days_till_earnings_style}>{days_till_earnings}d</td>"
                 output += "</tr>"
         output += "</table>"
         p_open = '<p style="font-size=12px; line-height: 0.8;">'
@@ -148,8 +157,8 @@ class TradeTodayReportingService():
             pnl_color = 'red'
         else:
             pnl_color = 'black'
-        pnl_span = f'<span style="color: {pnl_color};">{total_pnl:.0f}</span>'
-        output += f"<h1>Position performance: PNL$ = {pnl_span}</h1>"
+        pnl_span = f'<span style="color: {pnl_color};">${total_pnl:.0f}</span>'
+        output += f"<h1>Open position performance (PNL={pnl_span}):</h1>"
         output += '<table border="1">'
         output += """<tr>
                         <th>Ticker</th>
@@ -226,12 +235,15 @@ class TradeTodayReportingService():
         output += f"<h1>Execution Command</h1>"
         output += f"<p>{self.cli_command}</p>"
         # Trades today
+        print("Building trade today report ...")
         output += self.trades_today_html_section()
         # Add open positions performance
         # Ticker, Position Date, Position price, Position size, Close, RSI, BB-Top, BB-Mid, BB-Low, PNL %, PNL
         if self.open_positions:
+            print("Building open positions performance report ...")
             output += self.open_position_performance_html_section()
         if self.closed_positions:
+            print("Building closed positions performance report ...")
             output += self.closed_position_performance_html_section()
             
         if simulation:

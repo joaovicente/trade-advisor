@@ -1,4 +1,6 @@
 import yfinance as yf
+from services.utils_service import todays_date
+from datetime import datetime
 
 class RuntimeStockStatsService():
     # see https://pypi.org/project/yfinance/ 
@@ -18,3 +20,14 @@ class RuntimeStockStatsService():
         else:
             raise Exception(f"EPS data not available for {ticker}")
         return(pe_ratio)
+    
+    def next_earnings_call_in_days(self, ticker):
+        stock = self.tickers.tickers[ticker]
+        earnings_dates = [d.astype('M8[ms]').astype(datetime).date() for d in list(stock.get_earnings_dates().index.values)]
+        future_earnings_dates = [d for d in earnings_dates if d > todays_date()]
+        next_earnings_date = min(future_earnings_dates)
+        days_to_earning = (next_earnings_date - todays_date()).days
+        #print(f"{ticker}: {days_to_earning}")
+        return days_to_earning
+        
+        
