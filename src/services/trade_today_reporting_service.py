@@ -1,4 +1,5 @@
 import datetime
+from services.position_stats_service import PositionStatsService
 from services.runtime_stock_stats_service import RuntimeStockStatsService
 from services.stock_compute_service import StockComputeService
 
@@ -10,6 +11,7 @@ class TradeTodayReportingService():
         self.context = context
         self.open_positions = open_positions
         self.closed_positions = closed_positions
+        self.position_stats_service = PositionStatsService(open_positions, closed_positions)
         self.user = user
         svc = StockComputeService(tickers, today, open_positions)
         trades = svc.trades_today()
@@ -194,7 +196,6 @@ class TradeTodayReportingService():
     
     def closed_position_performance_html_section(self):
         output = ""
-        pnl_all_time = 0.0
         output += f"<h1>Closed position performance</h1>"
         output += '<table border="1">'
         output += """<tr>
@@ -204,14 +205,17 @@ class TradeTodayReportingService():
                         <th>PNL Jan - Nov</th>
                         <th>PNL Nov - Dec</th>
                     <tr>"""
-        for pos in self.closed_positions:
-            pnl_all_time += (pos.closed_price * pos.size) - (pos.price * pos.size) 
+        pnl_all_time = self.position_stats_service.get_pnl_all_time()
+        pnl_year_to_date = self.position_stats_service.get_pnl_year_to_date()
+        pnl_jan_to_nov = self.position_stats_service.get_pnl_jan_to_nov()
+        pnl_nov_to_dec = self.position_stats_service.get_pnl_nov_to_dec()
+        batting_average = self.position_stats_service.get_batting_avg()
         output += "<tr>"
         output += f"<td>{pnl_all_time:.0f}</td>"
-        output += f"<td></td>"
-        output += f"<td></td>"
-        output += f"<td></td>"
-        output += f"<td></td>"
+        output += f"<td>{batting_average}</td>"
+        output += f"<td>{pnl_year_to_date:.0f}</td>"
+        output += f"<td>{pnl_jan_to_nov:.0f}</td>"
+        output += f"<td>{pnl_nov_to_dec:.0f}</td>"
         output += "</table>"
         return output
     
