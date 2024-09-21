@@ -4,7 +4,7 @@ from services.runtime_stock_stats_service import RuntimeStockStatsService
 from services.stock_compute_service import StockComputeService
 
 class TradeTodayReportingService():
-    def __init__(self, today, tickers, open_positions, closed_positions, context, user="unknown"):
+    def __init__(self, today, tickers, open_positions, closed_positions, context, user="unknown", rapid=False):
         self.cli_command = ""
         self.trades_today = []
         self.stock_stats_today = []
@@ -13,6 +13,7 @@ class TradeTodayReportingService():
         self.closed_positions = closed_positions
         self.position_stats_service = PositionStatsService(open_positions, closed_positions)
         self.user = user
+        self.rapid = rapid
         svc = StockComputeService(tickers, today, open_positions)
         trades = svc.trades_today()
         # Command line expanded
@@ -83,7 +84,10 @@ class TradeTodayReportingService():
             if self.position_from_ticker(stock.ticker) is None:
                 growth_potential = round((stock.bb_top - stock.bb_bot) / stock.bb_bot * 100, 1)
                 pe_ratio = runtime_stock_stats_service.pe_ratio(stock.ticker)
-                days_till_earnings = runtime_stock_stats_service.next_earnings_call_in_days(stock.ticker)
+                if not self.rapid:
+                    days_till_earnings = runtime_stock_stats_service.next_earnings_call_in_days(stock.ticker)
+                else:
+                    days_till_earnings = 99
                 if stock.rsi < StockComputeService.LOWER_RSI:
                     rsi_style =' style="background-color: Green;"' 
                     # Close styling

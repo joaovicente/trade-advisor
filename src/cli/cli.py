@@ -36,7 +36,10 @@ import os
 @click.option('--user', '-u',
               help='Get information for this user (e.g. email, selected_stock, open_positions, etc)',
               default=None) 
-def trade_today(tickers, today, no_pos, context, position, output, user):
+@click.option('--rapid', '-r',
+              help='skip long operations', 
+              is_flag=True)
+def trade_today(tickers, today, no_pos, context, position, output, user, rapid):
     """Advise on trades that should be made today"""
     email_receiver = None
     open_positions = []
@@ -86,7 +89,7 @@ def trade_today(tickers, today, no_pos, context, position, output, user):
             else:
                 supplied_ticker_list = tickers.split(',')
                 tickers = ','.join(list(set(position_ticker_list + supplied_ticker_list)))
-    rep_svc = TradeTodayReportingService(today, tickers, open_positions, closed_positions, context, user)
+    rep_svc = TradeTodayReportingService(today, tickers, open_positions, closed_positions, context, user, rapid=rapid)
     print(rep_svc.console_report())
     if 'whatsapp' in output:
         WhatsappNotificationService().send_message(rep_svc.whatsapp_report())
