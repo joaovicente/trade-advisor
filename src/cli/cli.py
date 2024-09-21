@@ -14,8 +14,17 @@ import os
 
 
 @click.command()
+@click.option('--user', '-u',
+              help='Get information for this user storage (e.g. email, selected_stock, open_positions, etc)',
+              default=None) 
+@click.option('--output', '-o',
+              help='Output to either `console` (default),  `email`, `file` or `whatsapp` (e.g. --output=email)',
+              default='console') 
+@click.option('--rapid', '-r',
+              help='skip long operations (e.g. retrieve extra information from external apis)', 
+              is_flag=True)
 @click.option('--tickers','-t',
-              help='TICKERS provided as CSV. e.g.: AMZN,GOOG,MSFT)',
+              help='selected TICKERS provided as CSV. e.g.: AMZN,GOOG,MSFT)',
               default=None)
 @click.option('--today',
               help='mock today\'s date for testing in yyyy-mm-dd format (e.g. --today=2024-07-14)',
@@ -24,21 +33,12 @@ import os
               help='do not use open positions for testing', 
               is_flag=True)
 @click.option('--context', '--ctx', '-c',
-              help='Show provided number of days context for each ticker', 
+              help='Show provided number of days context for each ticker (deprecating)', 
               show_default=True,
               default=0)
 @click.option('--position', '-p',
               help='Provide open positions explicitly as follows -p {date},{ticker},{size},{price} (e.g. -p 2024-07-18,META,2.09692,476.89). Call this multiple times for multiple positions',
               multiple=True) 
-@click.option('--output', '-o',
-              help='Output to either `console` (default),  `email` or `whatsapp` (e.g. --output=email)',
-              default='console') 
-@click.option('--user', '-u',
-              help='Get information for this user (e.g. email, selected_stock, open_positions, etc)',
-              default=None) 
-@click.option('--rapid', '-r',
-              help='skip long operations', 
-              is_flag=True)
 def trade_today(tickers, today, no_pos, context, position, output, user, rapid):
     """Advise on trades that should be made today"""
     email_receiver = None
