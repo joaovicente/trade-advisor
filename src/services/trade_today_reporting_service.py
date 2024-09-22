@@ -75,7 +75,7 @@ class TradeTodayReportingService():
                         <th>BB-Bot</th>
                         <th>BB-Mid</th>
                         <th>BB-Top</th>
-                        <th>Earnings in Days</th>
+                        <th>Earnings in</th>
                     <tr>"""
         ticker_list = [stock.ticker for stock in self.stock_stats_today]
         runtime_stock_stats_service = RuntimeStockStatsService(ticker_list)
@@ -84,10 +84,7 @@ class TradeTodayReportingService():
             if self.position_from_ticker(stock.ticker) is None:
                 growth_potential = round((stock.bb_top - stock.bb_bot) / stock.bb_bot * 100, 1)
                 pe_ratio = runtime_stock_stats_service.pe_ratio(stock.ticker)
-                if not self.rapid:
-                    days_till_earnings = runtime_stock_stats_service.next_earnings_call_in_days(stock.ticker)
-                else:
-                    days_till_earnings = 99
+                days_till_earnings = runtime_stock_stats_service.next_earnings_call_in_days(stock.ticker)
                 if stock.rsi < StockComputeService.LOWER_RSI:
                     rsi_style =' style="background-color: Green;"' 
                     # Close styling
@@ -149,7 +146,7 @@ class TradeTodayReportingService():
         output = ""
         total_pnl = 0.0
         ticker_list = [stock.ticker for stock in self.stock_stats_today]
-        runtime_stock_stats_service = RuntimeStockStatsService(ticker_list)
+        runtime_stock_stats_service = RuntimeStockStatsService(ticker_list, self.rapid)
         stock_stats_sorted_by_pnl = sorted(self.stock_stats_today, key=lambda stats: stats.pnl_pct, reverse=True)
         for stock in stock_stats_sorted_by_pnl:
             position = self.position_from_ticker(stock.ticker)
@@ -178,13 +175,16 @@ class TradeTodayReportingService():
                         <th>BB-Top</th>
                         <th>PNL %</th>
                         <th>PNL</th>
+                        <th>Earnings in</th>
                     <tr>"""
         # exclude stocks with open positions
         for stock in stock_stats_sorted_by_pnl:
             pe_ratio = runtime_stock_stats_service.pe_ratio(stock.ticker)
             position = self.position_from_ticker(stock.ticker)
             if position is not None:
+                #TODO: Add PNL function to PositionStatsService
                 pnl = round((stock.close*position.size)-(position.price*position.size), 2)
+                days_till_earnings = runtime_stock_stats_service.next_earnings_call_in_days(stock.ticker)
                 if pnl > 0:
                     pnl_style =' style="background-color: Green;"' 
                 else:
@@ -203,6 +203,7 @@ class TradeTodayReportingService():
                 output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
                 output += f"<td>{round((stock.close - position.price) / stock.close * 100, 2):.2f}</td>"
                 output += f"<td{pnl_style}>{pnl:.2f}</td>"
+                output += f"<td>{days_till_earnings:.0f}d</td>"
                 output += "</tr>"
         output += "</table>"
         return output
