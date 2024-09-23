@@ -4,7 +4,7 @@ from services.runtime_stock_stats_service import RuntimeStockStatsService
 from services.stock_compute_service import StockComputeService
 
 class TradeTodayReportingService():
-    def __init__(self, today, tickers, open_positions, closed_positions, context, user="unknown", rapid=False):
+    def __init__(self, today: str, tickers, open_positions, closed_positions, context, user="unknown", rapid=False):
         self.cli_command = ""
         self.trades_today = []
         self.stock_stats_today = []
