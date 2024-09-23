@@ -120,7 +120,7 @@ class TradeTodayReportingService():
                     days_till_earnings_style ='' 
                         
                 output += "<tr>"
-                output += f"<td>{stock.ticker}</td>"
+                output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a></td>'
                 output += f"<td{close_style}>{round(stock.close, 2):.2f}</td>"
                 output += f'<td{rsi_style}>{round(stock.rsi, 2):.2f}</td>'
                 output += f'<td{pe_ratio_style}>{pe_ratio:.2f}</td>'
@@ -190,7 +190,7 @@ class TradeTodayReportingService():
                 else:
                     pnl_style =' style="background-color: Red;"' 
                 output += "<tr>"
-                output += f"<td>{stock.ticker}</td>"
+                output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a></td>'
                 output += f"<td>{position.date}</td>"
                 output += f"<td>{round(position.size*position.price, 2):.2f}</td>"
                 output += f"<td>{round(position.size, 2):.2f}</td>"
