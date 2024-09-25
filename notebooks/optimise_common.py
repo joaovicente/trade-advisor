@@ -10,7 +10,11 @@ interesting_stock = tech_stock + non_tech_stock
 # Target stock: US Mega (>200B market cap) with positive growth (from finviz screener)
 high_performance_stock = ['AAPL', 'ABBV', 'ADBE', 'AMD', 'AMZN', 'AVGO', 'BAC', 'BRK-B', 'COST', 'CRM', 'CVX', 'GOOG', 'HD', 'JNJ', 'JPM', 'KO', 'LLY', 'MA', 'META', 'MRK', 'MSFT', 'NFLX', 'NVDA', 'ORCL', 'PEP', 'PFE', 'PG', 'TMO', 'TSLA', 'UNH', 'V', 'WMT', 'XOM']
 
-def optimisation_dates(num_years, year_offset):
+def optimisation_dates(start_date, end_date):
+    warmup_date = start_date - datetime.timedelta(BaseStrategy.INDICATOR_WARMUP_IN_DAYS)
+    return warmup_date, start_date, end_date
+
+def optimisation_date_offsets(num_years, year_offset):
     number_of_days_to_simulate = 365 * num_years
     time_travel_days = 365 * year_offset
     end_date=datetime.datetime.today().date() - datetime.timedelta(time_travel_days)

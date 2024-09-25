@@ -1,4 +1,5 @@
 import datetime
+from reports.tax_activities_report import TaxActivitiesReport
 from services.position_stats_service import PositionStatsService
 from services.runtime_stock_stats_service import RuntimeStockStatsService
 from services.stock_compute_service import StockComputeService
@@ -11,9 +12,10 @@ class TradeTodayReportingService():
         self.context = context
         self.open_positions = open_positions
         self.closed_positions = closed_positions
-        self.position_stats_service = PositionStatsService(open_positions, closed_positions)
         self.user = user
         self.rapid = rapid
+        self.position_stats_service = PositionStatsService(open_positions, closed_positions)
+        self.tax_activities_report = TaxActivitiesReport(todays_date=today, closed_positions=closed_positions, rapid=rapid)
         svc = StockComputeService(tickers, today, open_positions)
         trades = svc.trades_today()
         # Command line expanded
@@ -250,7 +252,8 @@ class TradeTodayReportingService():
         if self.closed_positions:
             print("Building closed positions performance report ...")
             output += self.closed_position_performance_html_section()
-            
+            print("Building tax activities report ...")
+            output += self.tax_activities_report.get_tax_activities_html_report()
         if simulation:
             with open('temp/trade_advisor_report.html', 'w') as file:
                 file.write(output)
