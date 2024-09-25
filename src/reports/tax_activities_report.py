@@ -92,6 +92,8 @@ class TaxActivitiesReport():
         self.rapid = rapid
         last_position = None
         window = None
+        if not closed_positions:
+            return 
         for position in closed_positions:
             if TaxActivitiesReport.cross_window_boundary(last_position, position):
                 # New window
