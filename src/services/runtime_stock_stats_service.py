@@ -25,13 +25,14 @@ class RuntimeStockStatsService():
     def next_earnings_call_in_days(self, ticker):
         if not self.rapid:
             stock = self.tickers.tickers[ticker]
+            #print(stock.get_earnings_dates())
             earnings_dates = [d.astype('M8[ms]').astype(datetime).date() for d in list(stock.get_earnings_dates().index.values)]
             future_earnings_dates = [d for d in earnings_dates if d > todays_date()]
             next_earnings_date = min(future_earnings_dates)
             days_to_earning = (next_earnings_date - todays_date()).days
         else:
             days_to_earning = 99
-        #print(f"{ticker}: {days_to_earning}")
+        #print(f"{ticker}: {days_to_earning}d {next_earnings_date}")
         return days_to_earning
         
         

@@ -257,7 +257,7 @@ class TradeTodayReportingService():
         if simulation:
             with open('temp/trade_advisor_report.html', 'w') as file:
                 file.write(output)
-        return(f"{len(self.trades_today)} trades today", output)
+        return(f"{len(self.trades_today)} trades today {str(datetime.datetime.now()).split('.')[0]}", output)
     
     def whatsapp_report(self):
         return self.console_report(include_stats=False)
