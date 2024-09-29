@@ -238,9 +238,6 @@ class TradeTodayReportingService():
     def email_html_report(self, simulation=False):
         output = ""
         output += f"<p>Report for {self.user.capitalize()}</p>"
-        # CLI command
-        output += f"<h1>Execution Command</h1>"
-        output += f"<p>{self.cli_command}</p>"
         # Trades today
         print("Building trade today report ...")
         output += self.trades_today_html_section()
@@ -254,6 +251,9 @@ class TradeTodayReportingService():
             output += self.closed_position_performance_html_section()
             print("Building tax activities report ...")
             output += self.tax_activities_report.get_tax_activities_html_report()
+        # CLI command
+        output += f"<h1>Execution Command</h1>"
+        output += f"<p>{self.cli_command}</p>"
         if simulation:
             with open('temp/trade_advisor_report.html', 'w') as file:
                 file.write(output)
