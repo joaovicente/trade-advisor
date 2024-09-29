@@ -10,7 +10,6 @@ from services.trade_today_reporting_service import TradeTodayReportingService
 from services.whatsup_notification_service import WhatsappNotificationService
 from services.email_notification_service import EmailNotificationService
 import os
-import os
 
 
 @click.command()
@@ -60,8 +59,11 @@ def trade_today(tickers, today, no_pos, context, position, output, user, rapid):
         if user_info is not None:
             email_receiver = user_info.email
             # Get open_positions
-            open_positions_s3_path = f'{s3_bucket}/users/{user}/open_positions.csv'
-            open_positions = OpenPositionRepository(open_positions_s3_path).get_all()
+            if no_pos:
+                open_positions = []
+            else:
+                open_positions_s3_path = f'{s3_bucket}/users/{user}/open_positions.csv'
+                open_positions = OpenPositionRepository(open_positions_s3_path).get_all()
             # Get selected_tickers
             selected_tickers_s3_path = f'{s3_bucket}/users/{user}/selected_tickers.csv'
             tickers = ",".join(SelectedTickersRepository(selected_tickers_s3_path).get_all_as_list())

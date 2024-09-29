@@ -13,13 +13,16 @@ class RuntimeStockStatsService():
     def pe_ratio(self, ticker):
         if ticker not in self.ticker_list:
             raise Exception(f"{ticker} not in ticker list")
-        stock = self.tickers.tickers[ticker]
-        stock_price = stock.history(period='1d')['Close'].iloc[0]
-        eps_ttm = stock.info['trailingEps']
-        if eps_ttm:
-            pe_ratio = round(stock_price / eps_ttm, 2)
+        if not self.rapid:
+            stock = self.tickers.tickers[ticker]
+            stock_price = stock.history(period='1d')['Close'].iloc[0]
+            eps_ttm = stock.info['trailingEps']
+            if eps_ttm:
+                pe_ratio = round(stock_price / eps_ttm, 2)
+            else:
+                raise Exception(f"EPS data not available for {ticker}")
         else:
-            raise Exception(f"EPS data not available for {ticker}")
+            pe_ratio = 42
         return(pe_ratio)
     
     def next_earnings_call_in_days(self, ticker):
@@ -31,7 +34,7 @@ class RuntimeStockStatsService():
             next_earnings_date = min(future_earnings_dates)
             days_to_earning = (next_earnings_date - todays_date()).days
         else:
-            days_to_earning = 99
+            days_to_earning = 42
         #print(f"{ticker}: {days_to_earning}d {next_earnings_date}")
         return days_to_earning
         

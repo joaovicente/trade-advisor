@@ -1,6 +1,7 @@
 from typing import List
 from schemas.portfolio_stats import AssetStats, PortfolioStats, PositionStats
 from schemas.stock_daily_stats import StockDailyStats
+from services.utils_service import date_as_str, parse_date
 from strategies.base_strategy import BaseStrategy
 from strategies.rsi_strategy import RsiStrategy
 from strategies.bbrsi_strategy import BbRsiStrategy
@@ -14,12 +15,12 @@ class StockComputeService:
     DEFAULT_DAILY_STATS_RETURNED = BaseStrategy.TRADE_ACTION_CONTEXT_SIZE
     LOWER_RSI = 50
     def __init__(self, tickers, todays_date_str, open_positions=None, strategy=BbRsiStrategy):
-        self.todays_date_str = todays_date_str
+        self.todays_date_str = date_as_str(parse_date(todays_date_str) - datetime.timedelta(days=1))
         self.open_positions = open_positions
 
         self.initial_cash = 30000
         # end_date is the supplied date in today_data_str
-        self.end_date = (datetime.datetime.strptime(todays_date_str, "%Y-%m-%d") + datetime.timedelta(days=1)).date()
+        self.end_date = parse_date(self.todays_date_str) + datetime.timedelta(days=1)
         number_of_weeks_to_observe = 2
         if open_positions:
             self.warmup_date = open_positions[0].date - datetime.timedelta(weeks = BaseStrategy.INDICATOR_WARMUP_IN_WEEKS + number_of_weeks_to_observe)

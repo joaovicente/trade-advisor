@@ -13,6 +13,7 @@ class TradeTodayReportingService():
         self.open_positions = open_positions
         self.closed_positions = closed_positions
         self.user = user
+        self.today_str = today
         self.rapid = rapid
         self.position_stats_service = PositionStatsService(open_positions, closed_positions)
         self.tax_activities_report = TaxActivitiesReport(todays_date=today, closed_positions=closed_positions, rapid=rapid)
@@ -41,7 +42,7 @@ class TradeTodayReportingService():
             for trade in self.trades_today:
                 output += trade.as_text(context=False) + "\n"
         else:
-            output += f"No trades today ({str(datetime.datetime.today().date())})\n"
+            output += f"No trades today ({self.today_str})\n"
         output += "\n"
         # Stock stats
         if include_stats:
@@ -57,14 +58,14 @@ class TradeTodayReportingService():
    
     def trades_today_html_section(self):
         output = ""
-        output += f"<h1>Trades today</h1>"
+        output += f"<h1>Trades today ({self.today_str})</h1>"
         if self.trades_today:
             output += "<ul>"
             for trade in self.trades_today:
                 output += f"<li>{trade.as_text(context=False, include_date=False)}</li>"
             output += "</ul>"
         else:
-            output += f"<p>No trades today ({str(datetime.datetime.today().date())})</p>"
+            output += f"<p>No trades today ({self.today_str})</p>"
         # Stock stats
         output += f"<h1>Selected tickers statistics</h1>"
         output += '<table border="1">'
@@ -80,7 +81,7 @@ class TradeTodayReportingService():
                         <th>Earnings in</th>
                     <tr>"""
         ticker_list = [stock.ticker for stock in self.stock_stats_today]
-        runtime_stock_stats_service = RuntimeStockStatsService(ticker_list)
+        runtime_stock_stats_service = RuntimeStockStatsService(ticker_list, self.rapid)
         for stock in self.stock_stats_today:
             # exclude stocks with open positions
             if self.position_from_ticker(stock.ticker) is None:

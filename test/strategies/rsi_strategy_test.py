@@ -22,11 +22,12 @@ def test_trade_today_sell_single_open_position():
     #2024-05-31, SNOW Close: 136.18, RSI: 27.56, RSI-MA: 44.78, Position: 151.60, PNL: -11.32%
     #2024-05-31, SNOW Maximum tolerated loss reached (9.00%) Selling with 11.32% loss.
     #2024-05-31, SNOW SELL CREATE, 136.18
-    expected_sell_date = "2024-05-31"
-    actions = StockComputeService(ticker, expected_sell_date, open_positions, RsiStrategy).trades_today()
+    closing_date = "2024-05-31"
+    sell_date = "2024-06-01"
+    actions = StockComputeService(ticker, sell_date, open_positions, RsiStrategy).trades_today()
     # Expect sell action is returned
     assert len(actions) == 1
-    assert actions[0].date == parse_date(expected_sell_date)
+    assert actions[0].date == parse_date(closing_date)
     assert actions[0].action == "SELL"
     assert actions[0].ticker == ticker
     assert actions[0].reason == 'SNOW Maximum tolerated loss reached 9.00% Selling with 11.32% loss'
@@ -38,21 +39,23 @@ def test_trade_today_sell_multiple_open_positions():
         OpenPosition(date=parse_date("2023-10-30"), ticker='AMZN', size=38.5445575, price=129.72),
         OpenPosition(date=parse_date("2024-04-09"), ticker='SNOW', size=32.1377968, price=155.58)
     ]   
-    expected_sell_date = "2024-05-31"
-    actions = StockComputeService(ticker, expected_sell_date, open_positions, RsiStrategy).trades_today()
+    closing_date = "2024-05-31"
+    sell_date = "2024-06-01"
+    actions = StockComputeService(ticker, sell_date, open_positions, RsiStrategy).trades_today()
     # Expect sell action is returned
     assert len(actions) == 1
-    assert actions[0].date == parse_date(expected_sell_date)
+    assert actions[0].date == parse_date(closing_date)
     assert actions[0].action == "SELL"
     assert actions[0].ticker == 'SNOW'
     assert len(actions[0].context) == trade_action_context_size
     
 def test_trade_today_buy_without_open_positions():
-    date = "2024-05-06"
+    closing_date = "2024-05-06"
+    buy_date = "2024-05-07"
     ticker = "META"
-    actions = StockComputeService(ticker, date, strategy=RsiStrategy).trades_today()
+    actions = StockComputeService(ticker, buy_date, strategy=RsiStrategy).trades_today()
     assert len(actions) == 1
-    assert actions[0].date == parse_date(date)
+    assert actions[0].date == parse_date(closing_date)
     assert actions[0].action == "BUY"
     assert actions[0].ticker == ticker
     #'META RSI: 46.91 (yesterday=40.79) above RSI-MA 46.69 under RSI < 50.00 threshold'
@@ -67,12 +70,12 @@ def test_trade_today_rsi_calculation_bug():
     open_positions = [
         OpenPosition(date=parse_date("2024-04-09"), ticker='SNOW', size=32.1377968, price=155.58)
     ]   
-    date_today = "2024-07-16"
+    closing_date = "2024-07-17"
    
     scenarios = {'pos': None, 'no_pos': None}
      
-    scenarios['pos'] = StockComputeService(ticker, date_today, open_positions, RsiStrategy)
-    scenarios['no_pos'] = StockComputeService(ticker, date_today)
+    scenarios['pos'] = StockComputeService(ticker, closing_date, open_positions, RsiStrategy)
+    scenarios['no_pos'] = StockComputeService(ticker, closing_date)
    
     for scenario in list(scenarios.keys()):
         print(f'{scenario}:')

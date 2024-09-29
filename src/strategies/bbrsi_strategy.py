@@ -88,7 +88,7 @@ class BbRsiStrategy(BaseStrategy):
         condition = data.close[0] < self.getposition(data).price * (1-(self.params.loss_pct_threshold / 100))
         if condition:
             sell_action  = TradeAction(date=self.datas[0].datetime.date(0), action="SELL", ticker=name)
-            sell_action.reason = f"{name} Close ({data.close[-1]:.2f}, {data.close[0]:.2f}) loss {self.pnl_perc(data)} above {self.params.loss_pct_threshold}%"
+            sell_action.reason = f"{name} Close ({data.close[-1]:.2f}, {data.close[0]:.2f}) loss of {abs(self.pnl_perc(data))}% (above {self.params.loss_pct_threshold}% tolerance)"
         return sell_action
     
     def sell_action(self, name):
