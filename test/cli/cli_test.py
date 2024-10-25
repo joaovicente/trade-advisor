@@ -3,6 +3,11 @@ from models.open_position import OpenPosition
 from services.open_position_service import OpenPositionService
 from services.stock_compute_service import StockComputeService
 from test.utils import *
+from click.testing import CliRunner
+from cli.cli import trade_today
+import pytest
+import pytest
+import pytest
 
 def test_trade_today_with_open_position():
     # TODO: Actually call the CLI method rather than replicating its logic 
@@ -30,3 +35,8 @@ def test_trade_today_without_open_positions():
     for trade in trades:
         print(trade)
         
+@pytest.mark.skip(reason="Requires environment variables - use settings_test.json")
+def test_my_command():
+    runner = CliRunner()
+    result = runner.invoke(trade_today, ['-u', 'bugfix', '-o', 'file', '-r'])
+    assert result.exit_code == 0

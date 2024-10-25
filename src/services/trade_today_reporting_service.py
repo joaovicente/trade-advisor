@@ -135,7 +135,7 @@ class TradeTodayReportingService():
                 output += "</tr>"
         output += "</table>"
         p_open = '<p style="font-size=12px; line-height: 0.8;">'
-        output += f'{p_open}Screen in <a href="https://finviz.com/screener.ashx?v=111&ft=3&t=AAPL,ABBV,ADBE,AMD,AMZN,AVGO,BAC,BRK-B,COST,CRM,CVX,GOOG,HD,JNJ,JPM,KO,LLY,MA,META,MRK,MSFT,NFLX,NVDA,ORCL,PEP,PFE,PG,TMO,TSLA,UNH,V,WMT,XOM&o=rsi">Finviz</a></p>'
+        output += f'{p_open}Screen in <a href="https://finviz.com/screener.ashx?v=311&ft=3&t=AAPL,ABBV,ADBE,AMD,AMZN,AVGO,BAC,BRK-B,COST,CRM,CVX,GOOG,HD,JNJ,JPM,KO,LLY,MA,META,MRK,MSFT,NFLX,NVDA,ORCL,PEP,PFE,PG,TMO,TSLA,UNH,V,WMT,XOM&o=rsi">Finviz</a></p>'
         output += f'{p_open}<b>RSI:</b><a href="https://www.investopedia.com/terms/r/rsi.asp"> Relative Strength Index</a></p>'
         output += f'{p_open}<b>BB:</b><a href="https://www.investopedia.com/terms/b/bollingerbands.asp"> Bollinger Band</a></p>'
         output += f'{p_open}<i>Close</i> shows green as a sign of likely reversal of downwards trend (<i>Close</i> < <i>BB-Bot</i>). Explicit recommendation to buy will only occur when <i>Close</i> crosses above <i>BB-Bot</i> but this also means some potential gains may be lost if the price increases rapidly once reversal occurs. There is however no guarantee price will go up at this point. It could always keep going down. Do further research on the stock before opening a position on it.</p>'
@@ -182,6 +182,7 @@ class TradeTodayReportingService():
                         <th>Earnings in</th>
                     <tr>"""
         # exclude stocks with open positions
+        open_positions_tickers_csv = None
         for stock in stock_stats_sorted_by_pnl:
             pe_ratio = runtime_stock_stats_service.pe_ratio(stock.ticker)
             position = self.position_from_ticker(stock.ticker)
@@ -209,7 +210,14 @@ class TradeTodayReportingService():
                 output += f"<td{pnl_style}>{pnl:.2f}</td>"
                 output += f"<td>{days_till_earnings:.0f}d</td>"
                 output += "</tr>"
+                if open_positions_tickers_csv is None:
+                    open_positions_tickers_csv = stock.ticker
+                else:
+                    open_positions_tickers_csv += ',' + stock.ticker
         output += "</table>"
+        p_open = '<p style="font-size=12px; line-height: 0.8;">'
+        if open_positions_tickers_csv is not None:
+            output += f'{p_open}<a href="https://finviz.com/screener.ashx?v=311&ft=3&t={open_positions_tickers_csv}&o=-perf1w">Finviz open position analysis</a></p>'
         return output
     
     def closed_position_performance_html_section(self):
@@ -240,6 +248,7 @@ class TradeTodayReportingService():
     def email_html_report(self, simulation=False):
         output = ""
         output += f"<p>Report for {self.user.capitalize()}</p>"
+        output += f"<p><i>Created on {datetime.datetime.now()}</i></p>"
         # Trades today
         print("Building trade today report ...")
         output += self.trades_today_html_section()
