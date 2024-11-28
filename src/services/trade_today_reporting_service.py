@@ -136,6 +136,7 @@ class TradeTodayReportingService():
         output += "</table>"
         p_open = '<p style="font-size=12px; line-height: 0.8;">'
         output += f'{p_open}Screen in <a href="https://finviz.com/screener.ashx?v=311&ft=3&t=AAPL,ABBV,ADBE,AMD,AMZN,AVGO,BAC,BRK-B,COST,CRM,CVX,GOOG,HD,JNJ,JPM,KO,LLY,MA,META,MRK,MSFT,NFLX,NVDA,ORCL,PEP,PFE,PG,TMO,TSLA,UNH,V,WMT,XOM&o=rsi">Finviz</a></p>'
+        output += f'{p_open}Observe hedge fund movements in <a href="https://whalewisdom.com">Whalewisdom</a> and <a href="https://www.dataroma.com">Dataroma</a></p>'
         output += f'{p_open}<b>RSI:</b><a href="https://www.investopedia.com/terms/r/rsi.asp"> Relative Strength Index</a></p>'
         output += f'{p_open}<b>BB:</b><a href="https://www.investopedia.com/terms/b/bollingerbands.asp"> Bollinger Band</a></p>'
         output += f'{p_open}<i>Close</i> shows green as a sign of likely reversal of downwards trend (<i>Close</i> < <i>BB-Bot</i>). Explicit recommendation to buy will only occur when <i>Close</i> crosses above <i>BB-Bot</i> but this also means some potential gains may be lost if the price increases rapidly once reversal occurs. There is however no guarantee price will go up at this point. It could always keep going down. Do further research on the stock before opening a position on it.</p>'
