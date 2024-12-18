@@ -22,6 +22,9 @@ import os
 @click.option('--rapid', '-r',
               help='skip long operations (e.g. retrieve extra information from external apis)', 
               is_flag=True)
+@click.option('--skip-currency-conversion',
+              help='skip currency conversions (Will assume 1 US is worth 1 EURO)', 
+              is_flag=True)
 @click.option('--tickers','-t',
               help='selected TICKERS provided as CSV. e.g.: AMZN,GOOG,MSFT)',
               default=None)
@@ -38,7 +41,7 @@ import os
 @click.option('--position', '-p',
               help='Provide open positions explicitly as follows -p {date},{ticker},{size},{price} (e.g. -p 2024-07-18,META,2.09692,476.89). Call this multiple times for multiple positions',
               multiple=True) 
-def trade_today(tickers, today, no_pos, context, position, output, user, rapid):
+def trade_today(tickers, today, no_pos, context, position, output, user, rapid, skip_currency_conversion):
     """Advise on trades that should be made today"""
     email_receiver = None
     open_positions = []
@@ -91,7 +94,8 @@ def trade_today(tickers, today, no_pos, context, position, output, user, rapid):
             else:
                 supplied_ticker_list = tickers.split(',')
                 tickers = ','.join(list(set(position_ticker_list + supplied_ticker_list)))
-    rep_svc = TradeTodayReportingService(today, tickers, open_positions, closed_positions, context, user, rapid=rapid)
+    rep_svc = TradeTodayReportingService(today, tickers, open_positions, closed_positions, context, user, 
+                                         rapid=rapid, skip_currency_conversion=skip_currency_conversion)
     print(rep_svc.console_report())
     if 'whatsapp' in output:
         WhatsappNotificationService().send_message(rep_svc.whatsapp_report())

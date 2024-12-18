@@ -65,8 +65,6 @@ class TaxActivitiesReport():
         # API call if not fixed or rapid
         if self.fixed_forex_pct is not None:
             exchange_rate = self.fixed_forex_pct
-        elif self.rapid:
-            exchange_rate = 1
         else:
             # API call 
             date_str = date_as_str(date)
@@ -92,6 +90,7 @@ class TaxActivitiesReport():
         self.rapid = rapid
         last_position = None
         window = None
+        print(f"Fixed forex rate: {fixed_forex_pct}")
         if not closed_positions:
             return 
         for position in closed_positions:

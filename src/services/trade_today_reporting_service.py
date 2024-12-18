@@ -5,7 +5,7 @@ from services.runtime_stock_stats_service import RuntimeStockStatsService
 from services.stock_compute_service import StockComputeService
 
 class TradeTodayReportingService():
-    def __init__(self, today: str, tickers, open_positions, closed_positions, context, user="unknown", rapid=False):
+    def __init__(self, today: str, tickers, open_positions, closed_positions, context, user="unknown", rapid=False, skip_currency_conversion=False):
         self.cli_command = ""
         self.trades_today = []
         self.stock_stats_today = []
@@ -16,7 +16,12 @@ class TradeTodayReportingService():
         self.today_str = today
         self.rapid = rapid
         self.position_stats_service = PositionStatsService(open_positions, closed_positions)
-        self.tax_activities_report = TaxActivitiesReport(todays_date=today, closed_positions=closed_positions, rapid=rapid)
+        if skip_currency_conversion:
+            fixed_forex_pct = 1 
+        else:
+            fixed_forex_pct = None
+        self.tax_activities_report = TaxActivitiesReport(todays_date=today, closed_positions=closed_positions, 
+                                                         rapid=rapid, fixed_forex_pct=fixed_forex_pct)
         svc = StockComputeService(tickers, today, open_positions)
         trades = svc.trades_today()
         # Command line expanded
