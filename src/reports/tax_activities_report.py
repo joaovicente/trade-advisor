@@ -73,7 +73,7 @@ class TaxActivitiesReport():
             response = requests.get(url)
             if response.status_code == 200:
                 data = response.json()
-                exchange_rate = 1/data['rates']['EUR']
+                exchange_rate = 1 / data['rates']['EUR']
                 #print(f"1 US = {exchange_rate} EUR - for {date_str}")
             else:
                 raise Exception(f"Error ({response.status_code}) fetching data from openexchangerates.org")
@@ -90,7 +90,6 @@ class TaxActivitiesReport():
         self.rapid = rapid
         last_position = None
         window = None
-        print(f"Fixed forex rate: {fixed_forex_pct}")
         if not closed_positions:
             return 
         for position in closed_positions:
@@ -140,9 +139,9 @@ class TaxActivitiesReport():
             window.trade_gain_total.chargeable_gain += chargeable_gain
             last_position = position
         # Aggregated tax calculations
-        window.aggregated_tax.sale_price = window.trade_gain_total.sale_price * self.us_to_euro_rate(window.end_date)
-        window.aggregated_tax.cost_of_shares_sold = window.trade_gain_total.cost_of_shares_sold * self.us_to_euro_rate(window.end_date)
-        window.aggregated_tax.chargeable_gain = window.trade_gain_total.chargeable_gain * self.us_to_euro_rate(window.end_date)
+        window.aggregated_tax.sale_price = window.trade_gain_total.sale_price / self.us_to_euro_rate(window.end_date)
+        window.aggregated_tax.cost_of_shares_sold = window.trade_gain_total.cost_of_shares_sold / self.us_to_euro_rate(window.end_date)
+        window.aggregated_tax.chargeable_gain = window.trade_gain_total.chargeable_gain / self.us_to_euro_rate(window.end_date)
         window.aggregated_tax.personal_exemption = self.personal_exemption()
         #TODO: Deal with 
         window.aggregated_tax.taxable_gain = window.aggregated_tax.chargeable_gain - window.aggregated_tax.personal_exemption
@@ -203,9 +202,9 @@ class TaxActivitiesReport():
                         <th>Calculation</th>
                         <th>Value €</th>
                     </tr>"""
-        output += f"<tr><td>Sale Price</td><td>{window.trade_gain_total.sale_price:.2f} * {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i></td><td>{window.aggregated_tax.sale_price:.2f}</td></tr>"
-        output += f"<tr><td>Cost of shares sold</td><td>{window.trade_gain_total.cost_of_shares_sold:.2f} * {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i></td><td>{window.aggregated_tax.cost_of_shares_sold:.2f}</td></tr>"
-        output += f"<tr><td>Chargeable gain</td><td>{window.trade_gain_total.chargeable_gain:.2f} * {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i></td><td>{window.aggregated_tax.chargeable_gain:.2f}</td></tr>"
+        output += f"<tr><td>Sale Price</td><td>{window.trade_gain_total.sale_price:.2f} / {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i></td><td>{window.aggregated_tax.sale_price:.2f}</td></tr>"
+        output += f"<tr><td>Cost of shares sold</td><td>{window.trade_gain_total.cost_of_shares_sold:.2f} / {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i></td><td>{window.aggregated_tax.cost_of_shares_sold:.2f}</td></tr>"
+        output += f"<tr><td>Chargeable gain</td><td>{window.trade_gain_total.chargeable_gain:.2f} / {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i></td><td>{window.aggregated_tax.chargeable_gain:.2f}</td></tr>"
         output += f"<tr><td>Deduct personal exemption</td><td></td><td>{window.aggregated_tax.personal_exemption:.2f}</td></tr>"
         output += f"<tr><td>Taxable gain</td><td></td><td>{window.aggregated_tax.taxable_gain:.2f}</td></tr>"
         output += f"<tr><td>CGT to be paid</td><td>({self.cgp_tax_percentage()}% of {window.aggregated_tax.taxable_gain:.2f})</td><td>{window.aggregated_tax.cgt_to_be_paid:.2f}</td></tr>"
