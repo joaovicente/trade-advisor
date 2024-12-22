@@ -20,7 +20,9 @@ class TradeGainItem(BaseModel):
 class TradeGainTotal(BaseModel):
     sale_price: float 
     cost_of_shares_sold: float
-    chargeable_gain: float # sale price - cost of shares sold
+    chargeable_gain: float # gain and losses combined
+    chargeable_gain_before_relief: float # gain made (excluding losses)
+    losses_before_relief: float # losses made
 
 class AggregatedTax(BaseModel):
     #Aggregate tax calculation table (euro):
@@ -96,7 +98,7 @@ class TaxActivitiesReport():
             if TaxActivitiesReport.cross_window_boundary(last_position, position):
                 # New window
                 trade_gain = []
-                trade_gain_total = TradeGainTotal(sale_price=0, cost_of_shares_sold=0, chargeable_gain=0)
+                trade_gain_total = TradeGainTotal(sale_price=0, cost_of_shares_sold=0, chargeable_gain=0, chargeable_gain_before_relief=0, losses_before_relief=0)
                 window_year = position.closed_date.year
                 if position.closed_date.month < 12:
                     window_start_month = 1
@@ -136,6 +138,10 @@ class TaxActivitiesReport():
             # Update trade gain total
             window.trade_gain_total.sale_price += sale_price
             window.trade_gain_total.cost_of_shares_sold += cost_of_shares_sold
+            if chargeable_gain > 0:
+                window.trade_gain_total.chargeable_gain_before_relief += chargeable_gain
+            elif chargeable_gain < 0:
+                window.trade_gain_total.losses_before_relief += chargeable_gain * -1
             window.trade_gain_total.chargeable_gain += chargeable_gain
             last_position = position
         # Aggregated tax calculations
@@ -147,16 +153,17 @@ class TaxActivitiesReport():
         window.aggregated_tax.taxable_gain = window.aggregated_tax.chargeable_gain - window.aggregated_tax.personal_exemption
         if window.aggregated_tax.taxable_gain < 0:
             window.aggregated_tax.taxable_gain = 0
-        window.aggregated_tax.cgt_to_be_paid = window.aggregated_tax.taxable_gain * (self.cgp_tax_percentage() / 100)
+        window.aggregated_tax.cgt_to_be_paid = round(window.aggregated_tax.taxable_gain * (self.cgp_tax_percentage() / 100),2)
     
     
     def get_tax_activities_html_report(self) -> str:
         window = self.windows[0]
         # Next Tax Activities
         output = "<h1>Tax Activities</h1>"
-        # TODO: Identify next tax actitity and associated window(s)
-        output += f"<h2>By 15-Dec: Pay (€{window.aggregated_tax.cgt_to_be_paid:.2f}) CGT for Jan-Nov gains </h2>"
-        # TODO: Trade Gains Table
+        # Identify next tax actitity and associated window(s)
+        output += f"<h2>By 31-Jan: Pay (€{window.aggregated_tax.cgt_to_be_paid:.2f}) CGT for 2024 gains </h2>"
+        #output += f"<h2>By 15-Dec: Pay (€{window.aggregated_tax.cgt_to_be_paid:.2f}) CGT for Jan-Nov gains </h2>"
+        # Trade Gains Table
         output += '<table border="1">'
         output += """<tr>
                         <th>Ticker</th>
@@ -202,14 +209,38 @@ class TaxActivitiesReport():
                         <th>Calculation</th>
                         <th>Value €</th>
                     </tr>"""
-        output += f"<tr><td>Sale Price</td><td>{window.trade_gain_total.sale_price:.2f} / {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i></td><td>{window.aggregated_tax.sale_price:.2f}</td></tr>"
-        output += f"<tr><td>Cost of shares sold</td><td>{window.trade_gain_total.cost_of_shares_sold:.2f} / {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i></td><td>{window.aggregated_tax.cost_of_shares_sold:.2f}</td></tr>"
-        output += f"<tr><td>Chargeable gain</td><td>{window.trade_gain_total.chargeable_gain:.2f} / {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i></td><td>{window.aggregated_tax.chargeable_gain:.2f}</td></tr>"
+        chargeable_gain_in_euro = window.trade_gain_total.sale_price/self.us_to_euro_rate(window.end_date)
+        output += f"<tr><td>Sale Price</td><td>{window.trade_gain_total.sale_price:.2f} / {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i></td><td>"\
+            +f"{chargeable_gain_in_euro:.2f}</td></tr>"
+        cost_of_shares_sold_in_euro = window.trade_gain_total.cost_of_shares_sold/self.us_to_euro_rate(window.end_date)
+        output += f"<tr><td>Cost of shares sold</td><td>{window.trade_gain_total.cost_of_shares_sold:.2f} / {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i></td><td>"\
+            +f"{cost_of_shares_sold_in_euro:.2f}</td></tr>"
+        chargeable_gain_in_euro = window.trade_gain_total.chargeable_gain/self.us_to_euro_rate(window.end_date)
+        output += f"<tr><td>Chargeable gain</td><td>{window.trade_gain_total.chargeable_gain:.2f} / {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i></td><td>"\
+            +f"{chargeable_gain_in_euro:.2f}</td></tr>"
         output += f"<tr><td>Deduct personal exemption</td><td></td><td>{window.aggregated_tax.personal_exemption:.2f}</td></tr>"
         output += f"<tr><td>Taxable gain</td><td></td><td>{window.aggregated_tax.taxable_gain:.2f}</td></tr>"
         output += f"<tr><td>CGT to be paid</td><td>({self.cgp_tax_percentage()}% of {window.aggregated_tax.taxable_gain:.2f})</td><td>{window.aggregated_tax.cgt_to_be_paid:.2f}</td></tr>"
         output += "</tr>"
         output += "</table>"
+        output += "<p>How to fill CG1 form:</p>" 
+        output += "<ul>" 
+        output += f"<li>section 1(a) Shares / Securities - Quoted: {window.aggregated_tax.chargeable_gain:.2f} </li>" 
+        output += f"<li>section 1(l) Total consideration: {window.aggregated_tax.chargeable_gain:.2f} </li>"
+        output += f"<li>Section 7 Gains / Losses / Net Chargeable gains - Chargeable gains in the year before relief (self): "\
+            + f"{window.trade_gain_total.chargeable_gain_before_relief:.2f} / {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i> = {(window.trade_gain_total.chargeable_gain_before_relief/self.us_to_euro_rate(window.end_date)):.2f} </li>"
+        output += f"<li>Section 7 Gains / Losses / Net Chargeable gains - Losses before relief (self): "\
+            + f"{window.trade_gain_total.losses_before_relief:.2f} / {self.us_to_euro_rate(window.end_date):.5f} <i>(forex rate)</i> = {(window.trade_gain_total.losses_before_relief/self.us_to_euro_rate(window.end_date)):.2f} </li>"
+        output += f"<li>Section 11 Chargeable Gain(s) net of allowable current year losses and relief: "\
+            + f"{(window.trade_gain_total.chargeable_gain/self.us_to_euro_rate(window.end_date)):.2f} </li>"
+        # TODO: Add section 14: previous year losses as per https://youtu.be/YorwaTXEPYI?t=748
+        output += f"<li>Section 15 Personal Exemption: {window.aggregated_tax.personal_exemption:.2f}"
+        output += f"<li>Section 17 Chargeable Gain: {window.aggregated_tax.taxable_gain:.2f}"
+        # TODO: Add section 18,19,20: previous and next year losses https://youtu.be/YorwaTXEPYI?t=845
+        output += "<li>TODO: Section 21 and 22: chargeable gains that arose in the period Jan-Nov and Nov-Dec (notice it is net gain)</li>"
+
+        # TODO P1: Section 21 and 22: chargeable gains that arose in the period Jan-Nov and Nov-Dec (notice it is net gain)
+        output += "</ul>" 
         p_open = '<p style="font-size=12px; line-height: 0.8;">'
         output += f'<p><a href="https://www.revenue.ie/en/gains-gifts-and-inheritance/transfering-an-asset/when-and-how-do-you-pay-and-file-cgt.aspx"> How to pay for for Capital Gain Tax</a></p>'
         return output
