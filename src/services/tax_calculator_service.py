@@ -275,7 +275,6 @@ class TaxCalculatorService:
         self.closed_positions = closed_positions
         self.tax_years_dict: Dict[int, TaxYear] = {}
         self.load_tax_years()
-        self.list_of_tax_payment_windows = []
         remaining_tax_exemption_in_euro = 0
         carried_over_loss_in_euro = 0
         for tax_year_int in sorted(self.tax_years_dict.keys()):
@@ -292,7 +291,6 @@ class TaxCalculatorService:
                         remaining_tax_exemption_in_euro=remaining_tax_exemption_in_euro)
                     carried_over_loss_in_euro = tax_year.tax_payment_window(month).loss_to_carryover
                     tax_year.cgt_return = CapitalGainTaxReturn(tax_year)
-                self.list_of_tax_payment_windows.append(tax_year.tax_payment_window(month))
         
     def load_tax_years(self):
         # Create TaxYear objects for each year that has open positions
