@@ -134,6 +134,7 @@ class TradeTodayReportingService():
                     growth_potential_style =' style="background-color: Gray;"'
                     pe_ratio_style =''
                     days_till_earnings_style ='' 
+                    hedge_fund_buys_style =''
                         
                 output += "<tr>"
                 output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a></td>'
