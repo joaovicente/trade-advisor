@@ -79,7 +79,7 @@ class TradeTodayReportingService():
                         <th>Ticker</th>
                         <th>Close</th>
                         <th>RSI</th>
-                        <th>HF buys</th>
+                        <th>HF bought (owned)</th>
                         <th>P/E ratio</th>
                         <th>Growth Range</th>
                         <th>BB-Bot</th>
@@ -142,7 +142,7 @@ class TradeTodayReportingService():
                 output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a></td>'
                 output += f"<td{close_style}>{round(stock.close, 2):.2f}</td>"
                 output += f'<td{rsi_style}>{round(stock.rsi, 2):.2f}</td>'
-                output += f"<td{hedge_fund_buys_style}>{hedge_fund_buys}</td>"
+                output += f"<td{hedge_fund_buys_style}>{hedge_fund_buys} ({self.dataroma_service.num_owners_by_ticker(stock.ticker)})</td>"
                 output += f'<td{pe_ratio_style}>{pe_ratio:.2f}</td>'
                 output += f'<td{growth_potential_style}>{growth_potential:.1f}%</td>'
                 output += f"<td>{round(stock.bb_bot, 2):.2f}</td>"
@@ -198,6 +198,7 @@ class TradeTodayReportingService():
                         <th>BB-Top</th>
                         <th>PNL %</th>
                         <th>PNL</th>
+                        <th>HF bought (owned)</th>
                         <th>Earnings in</th>
                     <tr>"""
         # exclude stocks with open positions
@@ -213,6 +214,14 @@ class TradeTodayReportingService():
                     pnl_style =' style="background-color: Green;"' 
                 else:
                     pnl_style =' style="background-color: Red;"' 
+                # Hedge fund buys styling
+                hedge_fund_buys = self.dataroma_service.num_buys_by_ticker(stock.ticker)
+                if hedge_fund_buys >= 6:
+                    hedge_fund_buys_style =' style="color: Green;"'
+                elif hedge_fund_buys > 0 and hedge_fund_buys < 6:
+                    hedge_fund_buys_style =' style="color: Orange;"'
+                else:
+                    hedge_fund_buys_style =''
                 output += "<tr>"
                 output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a></td>'
                 output += f"<td>{position.date}</td>"
@@ -227,6 +236,7 @@ class TradeTodayReportingService():
                 output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
                 output += f"<td>{round((stock.close - position.price) / stock.close * 100, 2):.2f}</td>"
                 output += f"<td{pnl_style}>{pnl:.2f}</td>"
+                output += f"<td{hedge_fund_buys_style}>{hedge_fund_buys} ({self.dataroma_service.num_owners_by_ticker(stock.ticker)})</td>"
                 output += f"<td>{days_till_earnings:.0f}d</td>"
                 output += "</tr>"
                 if open_positions_tickers_csv is None:
