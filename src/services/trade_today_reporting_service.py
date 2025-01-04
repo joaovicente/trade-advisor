@@ -124,10 +124,12 @@ class TradeTodayReportingService():
                     else:
                         days_till_earnings_style ='' 
                     # Hedge fund buys styling
-                    if hedge_fund_buys < 4:
-                        hedge_fund_buys_style =''
-                    elif hedge_fund_buys >= 4:
+                    if hedge_fund_buys >= 6:
                         hedge_fund_buys_style =' style="background-color: Green;"'
+                    elif hedge_fund_buys > 0 and hedge_fund_buys < 6:
+                        hedge_fund_buys_style =' style="background-color: Orange;"'
+                    else:
+                        hedge_fund_buys_style =''
                 else:
                     rsi_style =''
                     close_style =''
