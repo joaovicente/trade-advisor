@@ -189,7 +189,7 @@ class TradeTodayReportingService():
         output += f"<h1>Open position performance (PNL={pnl_span}):</h1>"
         output += '<table border="1">'
         # replace with line by line increment
-        output += "tr>"
+        output += "<tr>"
         output += "<th>Ticker</th>"
         output += "<th>Position date</th>"
         output += "<th>Investment</th>"
