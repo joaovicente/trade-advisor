@@ -1,5 +1,5 @@
 import datetime
-from services.tax_calculator_service import TaxCalculatorService
+from services.tax_calculator_service import TaxCalculatorService, TaxCalculatorServiceConfig
 from services.position_stats_service import PositionStatsService
 from services.runtime_stock_stats_service import RuntimeStockStatsService
 from services.stock_compute_service import StockComputeService
@@ -19,10 +19,10 @@ class TradeTodayReportingService():
         self.position_stats_service = PositionStatsService(open_positions, closed_positions)
         self.dataroma_service = DataromaService()
         if skip_currency_conversion:
-            fixed_forex_pct = 1 
+            tax_calculator_service_config = TaxCalculatorServiceConfig(fixed_exchange_rates={"*": 1})
         else:
-            fixed_forex_pct = None
-        self.tax_calculator_service = TaxCalculatorService(closed_positions=closed_positions)
+            tax_calculator_service_config = TaxCalculatorServiceConfig()
+        self.tax_calculator_service = TaxCalculatorService(closed_positions=closed_positions, config=tax_calculator_service_config)
         svc = StockComputeService(tickers, today, open_positions)
         trades = svc.trades_today()
         # Command line expanded
