@@ -79,7 +79,7 @@ class TradeTodayReportingService():
         output += "<th>Ticker</th>"
         output += "<th>Close</th>"
         output += "<th>RSI</th>"
-        output += "<th>HF bought (owned)</th>"
+        output += "<th>HF H,Q,O</th>"
         if not self.rapid:
             output += "<th>P/E ratio</th>"
         output += "<th>Growth Range</th>"
@@ -97,7 +97,8 @@ class TradeTodayReportingService():
                 growth_potential = round((stock.bb_top - stock.bb_bot) / stock.bb_bot * 100, 1)
                 pe_ratio = runtime_stock_stats_service.pe_ratio(stock.ticker)
                 days_till_earnings = runtime_stock_stats_service.next_earnings_call_in_days(stock.ticker)
-                hedge_fund_buys = self.dataroma_service.num_buys_by_ticker(stock.ticker)
+                hedge_fund_buys_quarter= self.dataroma_service.num_quarter_buys_by_ticker(stock.ticker)
+                hedge_fund_buys_last_6months = self.dataroma_service.num_6month_buys_by_ticker(stock.ticker)
                 if stock.rsi < StockComputeService.LOWER_RSI:
                     rsi_style =' style="background-color: Green;"' 
                     # Close styling
@@ -126,9 +127,9 @@ class TradeTodayReportingService():
                     else:
                         days_till_earnings_style ='' 
                     # Hedge fund buys styling
-                    if hedge_fund_buys >= 6:
+                    if hedge_fund_buys_last_6months >= 6:
                         hedge_fund_buys_style =' style="background-color: Green;"'
-                    elif hedge_fund_buys > 0 and hedge_fund_buys < 6:
+                    elif hedge_fund_buys_last_6months > 0 and hedge_fund_buys_last_6months < 6:
                         hedge_fund_buys_style =' style="background-color: Orange;"'
                     else:
                         hedge_fund_buys_style =''
@@ -144,7 +145,7 @@ class TradeTodayReportingService():
                 output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a></td>'
                 output += f"<td{close_style}>{round(stock.close, 2):.2f}</td>"
                 output += f'<td{rsi_style}>{round(stock.rsi, 2):.2f}</td>'
-                output += f"<td{hedge_fund_buys_style}>{hedge_fund_buys} ({self.dataroma_service.num_owners_by_ticker(stock.ticker)})</td>"
+                output += f"<td{hedge_fund_buys_style}>{hedge_fund_buys_last_6months},{hedge_fund_buys_quarter},{self.dataroma_service.num_owners_by_ticker(stock.ticker)}</td>"
                 if not self.rapid:
                     output += f'<td{pe_ratio_style}>{pe_ratio:.2f}</td>'
                 output += f'<td{growth_potential_style}>{growth_potential:.1f}%</td>'
@@ -163,7 +164,7 @@ class TradeTodayReportingService():
         output += f'{p_open}<i>Close</i> shows green as a sign of likely reversal of downwards trend (<i>Close</i> < <i>BB-Bot</i>). Explicit recommendation to buy will only occur when <i>Close</i> crosses above <i>BB-Bot</i> but this also means some potential gains may be lost if the price increases rapidly once reversal occurs. There is however no guarantee price will go up at this point. It could always keep going down. Do further research on the stock before opening a position on it.</p>'
         output += f'{p_open}<i>Close</i> shows orange when approaching <i>BB-Bot</i>, more specifically <i>Close</i> is in the lower half of [<i>BB-Bot</i>..<i>BB-Mid</i>] range. Meaning start researching this stock</p>'
         output += f'{p_open}<i>RSI</i> shows green when it goes below {StockComputeService.LOWER_RSI}, meaning it is oversold</p>'
-        output += f'{p_open}<i>HF Buys</i> shows the number of Hedge Funds that bought stock in last quarter, followed by the number of Hedge Funds that own stock</p>'
+        output += f'{p_open}<i>HF Buys</i> shows the number of Hedge Funds that bought stock in last 6 months (H), quarter (Q), followed by the number of Hedge Funds that own stock (O)</p>'
         output += f'{p_open}<i>Growth Range</i> Indicates how high stock price might go in the short term (applicable only when <i>Close</i> near or below <i>BB-Bot</i>)</p>'
         output += f'{p_open}<i>Growth Range</i> will show orange if above 5% and green if above 10%</p>'
         output += f'{p_open}<i>Growth Range</i> will show gray if <i>Close</i> not near <i>BB-Bot</i> as price is not at the bottom of the growth band</p>'
@@ -204,7 +205,7 @@ class TradeTodayReportingService():
         output += "<th>BB-Top</th>"
         output += "<th>PNL %</th>"
         output += "<th>PNL</th>"
-        output += "<th>HF bought (owned)</th>"
+        output += "<th>HF H,Q,O</th>"
         if not self.rapid:
             output += "<th>Earnings in</th>"
         output += "</tr>"
@@ -222,10 +223,11 @@ class TradeTodayReportingService():
                 else:
                     pnl_style =' style="background-color: Red;"' 
                 # Hedge fund buys styling
-                hedge_fund_buys = self.dataroma_service.num_buys_by_ticker(stock.ticker)
-                if hedge_fund_buys >= 6:
+                hedge_fund_buys_quarter= self.dataroma_service.num_quarter_buys_by_ticker(stock.ticker)
+                hedge_fund_buys_last_6months = self.dataroma_service.num_6month_buys_by_ticker(stock.ticker)
+                if hedge_fund_buys_last_6months >= 6:
                     hedge_fund_buys_style =' style="color: Green;"'
-                elif hedge_fund_buys > 0 and hedge_fund_buys < 6:
+                elif hedge_fund_buys_last_6months > 0 and hedge_fund_buys_last_6months < 6:
                     hedge_fund_buys_style =' style="color: Orange;"'
                 else:
                     hedge_fund_buys_style =''
@@ -244,7 +246,7 @@ class TradeTodayReportingService():
                 output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
                 output += f"<td>{round((stock.close - position.price) / stock.close * 100, 2):.2f}</td>"
                 output += f"<td{pnl_style}>{pnl:.2f}</td>"
-                output += f"<td{hedge_fund_buys_style}>{hedge_fund_buys} ({self.dataroma_service.num_owners_by_ticker(stock.ticker)})</td>"
+                output += f"<td{hedge_fund_buys_style}>{hedge_fund_buys_last_6months},{hedge_fund_buys_quarter},{self.dataroma_service.num_owners_by_ticker(stock.ticker)}</td>"
                 if not self.rapid:
                     output += f"<td>{days_till_earnings}d</td>"
                 output += "</tr>"

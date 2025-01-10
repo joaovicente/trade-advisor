@@ -5,16 +5,26 @@ import requests
 
 class DataromaService:
     def __init__(self):
-        self.symbol_buys_dict = self.web_scrape(url="https://www.dataroma.com/m/g/portfolio_b.php?q=q&o=c", 
+        self.symbol_quarter_buys_dict = self.web_scrape(url="https://www.dataroma.com/m/g/portfolio_b.php?q=q&o=c", 
+                               num_columns=9, column_label="Buys▼")
+        self.symbol_6months_buys_dict = self.web_scrape(url="https://www.dataroma.com/m/g/portfolio_b.php?q=h&o=c", 
                                num_columns=9, column_label="Buys▼")
         self.symbol_ownership_dict = self.web_scrape(url="https://www.dataroma.com/m/g/portfolio.php?pct=0&o=c", 
                                num_columns=10, column_label="Ownershipcount▼")
 
-    def num_buys_by_ticker(self, ticker):
+    def num_quarter_buys_by_ticker(self, ticker):
         # Dataroma uses '.' (e.g. BRK.B) notation instead of '-' (BRK-B)
         ticker = ticker.replace('-', '.')
-        if ticker in self.symbol_buys_dict:
-            return int(self.symbol_buys_dict[ticker])
+        if ticker in self.symbol_quarter_buys_dict:
+            return int(self.symbol_quarter_buys_dict[ticker])
+        else:
+            return 0
+        
+    def num_6month_buys_by_ticker(self, ticker):
+        # Dataroma uses '.' (e.g. BRK.B) notation instead of '-' (BRK-B)
+        ticker = ticker.replace('-', '.')
+        if ticker in self.symbol_6months_buys_dict:
+            return int(self.symbol_6months_buys_dict[ticker])
         else:
             return 0
         
