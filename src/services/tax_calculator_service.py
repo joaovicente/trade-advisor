@@ -24,7 +24,8 @@ def exchange_rate(date, cfg: TaxCalculatorServiceConfig) -> float:
             data = response.json()
             exchange_rate = round(1 / data['rates']['EUR'], 5)
         else:
-            raise Exception(f"Error ({response.status_code}) fetching data from openexchangerates.org")
+            exchange_rate = 1
+            print(f"ERROR: ({response.status_code}) fetching data from openexchangerates.org")
         return exchange_rate
     else: # supplied exchange rate(s)
         # config is date -> rate dictionary {"*": 1}
