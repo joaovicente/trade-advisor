@@ -265,23 +265,24 @@ class TradeTodayReportingService():
         output += f"<h1>Closed position performance</h1>"
         output += '<table border="1">'
         output += """<tr>
-                        <th>PNL all time</th>
+                        <th>Period</th>
                         <th>Batting average</th>
-                        <th>PNL year to date</th>
-                        <th>PNL Jan - Nov</th>
-                        <th>PNL Nov - Dec</th>
+                        <th>PNL</th>
                     <tr>"""
-        pnl_all_time = self.position_stats_service.get_pnl_all_time()
-        pnl_year_to_date = self.position_stats_service.get_pnl_year_to_date()
-        pnl_jan_to_nov = self.position_stats_service.get_pnl_jan_to_nov()
-        pnl_nov_to_dec = self.position_stats_service.get_pnl_nov_to_dec()
-        batting_average = self.position_stats_service.get_batting_avg()
+        # years
+        years = self.position_stats_service.yearly_closed_positions_performance()
+        for year in years:
+            output += "<tr>"
+            output += f"<td>{year.year}</td>"
+            output += f"<td>{year.batting_average}</td>"
+            output += f"<td>{year.pnl:.0f}</td>"
+            output += "</tr>"
         output += "<tr>"
-        output += f"<td>{pnl_all_time:.0f}</td>"
-        output += f"<td>{batting_average}</td>"
-        output += f"<td>{pnl_year_to_date:.0f}</td>"
-        output += f"<td>{pnl_jan_to_nov:.0f}</td>"
-        output += f"<td>{pnl_nov_to_dec:.0f}</td>"
+        all_time = self.position_stats_service.all_time_closed_positions_performance()
+        output += f"<td>All time</td>"
+        output += f"<td>{all_time.batting_average}</td>"
+        output += f"<td>{all_time.pnl:.0f}</td>"
+        output += "</tr>"
         output += "</table>"
         return output
     
