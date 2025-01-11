@@ -63,6 +63,7 @@ class TradeTodayReportingService():
         return None
    
     def trades_today_html_section(self):
+        oversold_hedge_fund_bought_tickers = []
         output = ""
         output += f"<h1>Trades today ({self.today_str})</h1>"
         if self.trades_today:
@@ -140,6 +141,8 @@ class TradeTodayReportingService():
                     pe_ratio_style =''
                     days_till_earnings_style ='' 
                     hedge_fund_buys_style =''
+                if close_style != "" and rsi_style != "" and hedge_fund_buys_last_6months >= 5:
+                    oversold_hedge_fund_bought_tickers.append(stock.ticker)
                         
                 output += "<tr>"
                 output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a></td>'
@@ -158,6 +161,7 @@ class TradeTodayReportingService():
         output += "</table>"
         p_open = '<p style="font-size=12px; line-height: 0.8;">'
         output += f'{p_open}Screen in <a href="https://finviz.com/screener.ashx?v=311&ft=3&t=AAPL,ABBV,ADBE,AMD,AMZN,AVGO,BAC,BRK-B,COST,CRM,CVX,GOOG,HD,JNJ,JPM,KO,LLY,MA,META,MRK,MSFT,NFLX,NVDA,ORCL,PEP,PFE,PG,TMO,TSLA,UNH,V,WMT,XOM&o=rsi">Finviz</a></p>'
+        output += f'{p_open}HF shortlist in <a href="https://finviz.com/screener.ashx?v=311&ft=3&t={",".join(oversold_hedge_fund_bought_tickers)}&o=forwardpe">Finviz</a></p>'
         output += f'{p_open}Observe hedge fund movements in <a href="https://whalewisdom.com">Whalewisdom</a> and <a href="https://www.dataroma.com">Dataroma</a></p>'
         output += f'{p_open}<b>RSI:</b><a href="https://www.investopedia.com/terms/r/rsi.asp"> Relative Strength Index</a></p>'
         output += f'{p_open}<b>BB:</b><a href="https://www.investopedia.com/terms/b/bollingerbands.asp"> Bollinger Band</a></p>'
