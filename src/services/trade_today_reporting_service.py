@@ -80,7 +80,7 @@ class TradeTodayReportingService():
         output += "<th>Ticker</th>"
         output += "<th>Close</th>"
         output += "<th>RSI</th>"
-        output += "<th>HF H,Q,O</th>"
+        output += '<th>HF <a href="https://www.dataroma.com/m/g/portfolio_b.php?q=h&o=c">H</a>,<a href="https://www.dataroma.com/m/g/portfolio_b.php?q=q&o=c">Q</a>,<a href="https://www.dataroma.com/m/g/portfolio.php?pct=0&o=c">O</a></th>'
         if not self.rapid:
             output += "<th>P/E ratio</th>"
         output += "<th>Growth Range</th>"
@@ -145,10 +145,10 @@ class TradeTodayReportingService():
                     oversold_hedge_fund_bought_tickers.append(stock.ticker)
                         
                 output += "<tr>"
-                output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a></td>'
+                output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a>   <a href="https://www.tradingview.com/symbols/{stock.ticker}"><span style="font-size: 0.5em;">TV</span></a></td>'
                 output += f"<td{close_style}>{round(stock.close, 2):.2f}</td>"
                 output += f'<td{rsi_style}>{round(stock.rsi, 2):.2f}</td>'
-                output += f"<td{hedge_fund_buys_style}>{hedge_fund_buys_last_6months},{hedge_fund_buys_quarter},{self.dataroma_service.num_owners_by_ticker(stock.ticker)}</td>"
+                output += f'<td{hedge_fund_buys_style}>{hedge_fund_buys_last_6months},{hedge_fund_buys_quarter},<a href="https://www.dataroma.com/m/stock.php?sym={stock.ticker}">{self.dataroma_service.num_owners_by_ticker(stock.ticker)}</a></td>'
                 if not self.rapid:
                     output += f'<td{pe_ratio_style}>{pe_ratio:.2f}</td>'
                 output += f'<td{growth_potential_style}>{growth_potential:.1f}%</td>'
@@ -209,7 +209,7 @@ class TradeTodayReportingService():
         output += "<th>BB-Top</th>"
         output += "<th>PNL %</th>"
         output += "<th>PNL</th>"
-        output += "<th>HF H,Q,O</th>"
+        output += '<th>HF <a href="https://www.dataroma.com/m/g/portfolio_b.php?q=h&o=c">H</a>,<a href="https://www.dataroma.com/m/g/portfolio_b.php?q=q&o=c">Q</a>,<a href="https://www.dataroma.com/m/g/portfolio.php?pct=0&o=c">O</a></th>'
         if not self.rapid:
             output += "<th>Earnings in</th>"
         output += "</tr>"
@@ -250,7 +250,7 @@ class TradeTodayReportingService():
                 output += f"<td>{round(stock.bb_top, 2):.2f}</td>"
                 output += f"<td>{round((stock.close - position.price) / stock.close * 100, 2):.2f}</td>"
                 output += f"<td{pnl_style}>{pnl:.2f}</td>"
-                output += f"<td{hedge_fund_buys_style}>{hedge_fund_buys_last_6months},{hedge_fund_buys_quarter},{self.dataroma_service.num_owners_by_ticker(stock.ticker)}</td>"
+                output += f'<td{hedge_fund_buys_style}>{hedge_fund_buys_last_6months},{hedge_fund_buys_quarter},<a href="https://www.dataroma.com/m/stock.php?sym={stock.ticker}">{self.dataroma_service.num_owners_by_ticker(stock.ticker)}</a></td>'
                 if not self.rapid:
                     output += f"<td>{days_till_earnings}d</td>"
                 output += "</tr>"
