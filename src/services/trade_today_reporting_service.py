@@ -236,7 +236,7 @@ class TradeTodayReportingService():
                 else:
                     hedge_fund_buys_style =''
                 output += "<tr>"
-                output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a></td>'
+                output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a>   <a href="https://www.tradingview.com/symbols/{stock.ticker}"><span style="font-size: 0.5em;">TV</span></a></td>'
                 output += f"<td>{position.date}</td>"
                 output += f"<td>{round(position.size*position.price, 2):.2f}</td>"
                 output += f"<td>{round(position.size, 2):.2f}</td>"
