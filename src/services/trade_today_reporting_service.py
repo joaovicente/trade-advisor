@@ -143,9 +143,10 @@ class TradeTodayReportingService():
                     hedge_fund_buys_style =''
                 if close_style != "" and rsi_style != "" and hedge_fund_buys_last_6months >= 5:
                     oversold_hedge_fund_bought_tickers.append(stock.ticker)
-                        
+                    
+                dotted_stock = stock.ticker.replace("-",".")
                 output += "<tr>"
-                output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a>   <a href="https://www.tradingview.com/symbols/{stock.ticker}"><span style="font-size: 0.5em;">TV</span></a></td>'
+                output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a>   <a href="https://www.tradingview.com/symbols/{dotted_stock}"><span style="font-size: 0.5em;">TV</span></a></td>'
                 output += f"<td{close_style}>{round(stock.close, 2):.2f}</td>"
                 output += f'<td{rsi_style}>{round(stock.rsi, 2):.2f}</td>'
                 output += f'<td{hedge_fund_buys_style}>{hedge_fund_buys_last_6months},{hedge_fund_buys_quarter},<a href="https://www.dataroma.com/m/stock.php?sym={stock.ticker}">{self.dataroma_service.num_owners_by_ticker(stock.ticker)}</a></td>'
@@ -235,8 +236,10 @@ class TradeTodayReportingService():
                     hedge_fund_buys_style =' style="color: Orange;"'
                 else:
                     hedge_fund_buys_style =''
+                    
+                dotted_stock = stock.ticker.replace("-",".")
                 output += "<tr>"
-                output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a>   <a href="https://www.tradingview.com/symbols/{stock.ticker}"><span style="font-size: 0.5em;">TV</span></a></td>'
+                output += f'<td><a href="https://finviz.com/quote.ashx?t={stock.ticker}">{stock.ticker}</a>   <a href="https://www.tradingview.com/symbols/{dotted_stock}"><span style="font-size: 0.5em;">TV</span></a></td>'
                 output += f"<td>{position.date}</td>"
                 output += f"<td>{round(position.size*position.price, 2):.2f}</td>"
                 output += f"<td>{round(position.size, 2):.2f}</td>"
