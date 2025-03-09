@@ -3,7 +3,7 @@ backtrader==1.9.78.123
 requests==2.32.3
 TA-Lib==0.4.32
 matplotlib==3.9.2
-yfinance==0.2.43
+yfinance==0.2.54
 fastapi==0.112.2
 click==8.1.7
 duckdb==1.0.0

@@ -54,3 +54,4 @@ temp
 *.swp
 temp.csv
 local_storage
+yfinance_data_*

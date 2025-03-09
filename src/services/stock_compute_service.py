@@ -10,6 +10,7 @@ import backtrader as bt
 import yfinance as yf
 
 import datetime
+import os
 
 class StockComputeService:
     DEFAULT_DAILY_STATS_RETURNED = BaseStrategy.TRADE_ACTION_CONTEXT_SIZE
@@ -45,14 +46,44 @@ class StockComputeService:
                             open_positions=self.open_positions)
 
         # Add the Data Feed to Cerebro
+        #yf.enable_debug_mode() # Uncomment to debug download
+        # No longer using bt.feeds.PandasData as latest yfinance pandas no longer compatible with backtrader
+        # Downloading yfinance CSV to file and loading to backtrader from csv to keep Backtrader decoupled from YFinance
+        print(f'Fetching data from {self.warmup_date} to {self.end_date}')
+        multi_ticker_data = yf.download(self.tickers_list, start=self.warmup_date, end=self.end_date)  # Custom date range
         for ticker in self.tickers_list:
-            yahoo_data = yf.download(ticker, self.warmup_date, self.end_date)
-            data = bt.feeds.PandasData(dataname=yahoo_data)
+            # Extract data for a single ticker (like yf.Ticker().history() format)
+            single_ticker_data = multi_ticker_data.xs(ticker, level=1, axis=1)
+            # Save as CSV
+            filename = f'yfinance_data_{ticker}.csv'
+            single_ticker_data.to_csv(filename)
+            # Load data from CSV
+            # FIXME: YahooFinanceCSVData is not working Failing in backtrader/feeds/yahoo.py", line 150 expected adjfactor = c / adjustedclose
+            #data = bt.feeds.YahooFinanceCSVData(dataname=filename)
+            # Using GenericCSVData instead of YahooFinanceCSVData as a workaround
+            # see https://www.backtrader.com/docu/datafeed/#genericcsvdata
+            data = bt.feeds.GenericCSVData(
+                dataname=filename,
+                fromdate=datetime.datetime.combine(self.warmup_date, datetime.datetime.min.time()),
+                todate=datetime.datetime.combine(self.end_date, datetime.datetime.min.time()),
+                nullvalue=0.0,
+                dtformat=('%Y-%m-%d'),
+                datetime=0,
+                close=1,
+                high=2,
+                low=3,
+                open=4,
+                volume=5,
+                openinterest=None
+            )
             self.cerebro.adddata(data=data, name=ticker)
         # Set our desired cash start
         self.cerebro.broker.setcash(self.initial_cash)
         # Run over everything
         self.cerebro.run()
+        for ticker in self.tickers_list:
+            # Remove the CSV files
+            os.remove(f'yfinance_data_{ticker}.csv')
         # TODO: test this will return actions for 2 tickers in the same day
         self.strategy = self.cerebro.runstrats[0][0]
 
