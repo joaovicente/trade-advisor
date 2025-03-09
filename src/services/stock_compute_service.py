@@ -1,3 +1,4 @@
+import random
 from typing import List
 from schemas.portfolio_stats import AssetStats, PortfolioStats, PositionStats
 from schemas.stock_daily_stats import StockDailyStats
@@ -51,11 +52,13 @@ class StockComputeService:
         # Downloading yfinance CSV to file and loading to backtrader from csv to keep Backtrader decoupled from YFinance
         print(f'Fetching data from {self.warmup_date} to {self.end_date}')
         multi_ticker_data = yf.download(self.tickers_list, start=self.warmup_date, end=self.end_date)  # Custom date range
+        # FIXME: replace unique_prefix with {user}_{date}
+        unique_prefix = random.randint(1, 1000)
         for ticker in self.tickers_list:
             # Extract data for a single ticker (like yf.Ticker().history() format)
             single_ticker_data = multi_ticker_data.xs(ticker, level=1, axis=1)
             # Save as CSV
-            filename = f'yfinance_data_{ticker}.csv'
+            filename = f'yfinance_data_{unique_prefix}_{ticker}.csv'
             single_ticker_data.to_csv(filename)
             # Load data from CSV
             # FIXME: YahooFinanceCSVData is not working Failing in backtrader/feeds/yahoo.py", line 150 expected adjfactor = c / adjustedclose
@@ -83,7 +86,8 @@ class StockComputeService:
         self.cerebro.run()
         for ticker in self.tickers_list:
             # Remove the CSV files
-            os.remove(f'yfinance_data_{ticker}.csv')
+            os.remove(f'yfinance_data_{unique_prefix}_{ticker}.csv')
+            pass
         # TODO: test this will return actions for 2 tickers in the same day
         self.strategy = self.cerebro.runstrats[0][0]
 
