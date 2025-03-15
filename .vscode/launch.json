@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Pytest",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}",
+            "module": "pytest",
+            "justMyCode": false,  // This allows stepping into libraries
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"  // Ensure the workspace folder is in the PYTHONPATH
+            }
+        }
+    ]
+}

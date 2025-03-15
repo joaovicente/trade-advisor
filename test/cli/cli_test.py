@@ -38,5 +38,5 @@ def test_trade_today_without_open_positions():
 @pytest.mark.skip(reason="Requires environment variables - use settings_test.json")
 def test_my_command():
     runner = CliRunner()
-    result = runner.invoke(trade_today, ['-u', 'bugfix', '-o', 'file', '-r'])
+    result = runner.invoke(trade_today, ['-u', 'bugfix', '-o', 'file', '-r', '--skip-currency-conversion'])
     assert result.exit_code == 0
