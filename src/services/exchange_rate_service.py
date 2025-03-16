@@ -31,12 +31,26 @@ class ExchangeRateService:
             if self.app_id is None:
                 raise Exception(f"Missing environment variable OPEN_EXCHANGE_APP_ID") 
         else:
-            # TODO: Validate stub has base currency
             # Check for wildcard date stub 
             self.stub_has_wildcard_date = '*' in stub
-            # TODO: Check non wildcard_date have 'rates' key
-            # TODO: Check rates are valid format key: string and value: float
+            if self.stub_has_wildcard_date:
+                if 'rates' not in stub['*']:
+                    raise Exception(f"Missing 'rates' key in wildcard date stub")
+                self.validate_rates(stub['*']['rates'])
+            else:
+                # Check non wildcard_date have 'rates' key
+                for date in stub:
+                    if 'rates' not in stub[date]:
+                        raise Exception(f"Missing 'rates' key in stub for date {date}")
+                    self.validate_rates(stub[date]['rates'])
             self.stub = stub
+
+    def validate_rates(self, rates):
+        for currency in rates:
+            if not isinstance(currency, str):
+                raise Exception(f"Currency {currency} is not a string")
+            if not isinstance(rates[currency], float):
+                raise Exception(f"Rate {rates[currency]} is not a float")
         
     def get_rate(self, currency: str, date: datetime.date):
         if date > todays_date():
