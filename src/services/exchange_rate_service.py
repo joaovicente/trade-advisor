@@ -1,11 +1,26 @@
+from dataclasses import dataclass
 import datetime
+import json
 import os
+from typing import Dict
 
 import requests
-from services.utils_service import date_as_str, todays_date, parse_date
+from services.utils_service import date_as_str, date_str_diff_in_days, todays_date, today_as_str
+
+@dataclass
+class ExchangeRateCacheEntry:
+    last_read_date: str
+    read_count: int
+    rates: Dict[str, float]
 
 class ExchangeRateService:
-    def __init__(self,  base_currency='EUR', stub=None):
+    def __init__(self,  
+                 base_currency='EUR', 
+                 stub=None, 
+                 filesystem_cache_path='./test/data/exchange_rate_cache.json', 
+                 today_date_str=None # for testing only
+                 ):
+        # TODO: Update with updated description of the class behavior
         #// self returns a dictionary of exchange rates for provided date to a base currency, e.g.
         #   {
         #     'date': '2022-11-30',
@@ -25,11 +40,15 @@ class ExchangeRateService:
         #       '2022-12-31': {'rates': {'USD': 1.00, 'CHF': 1.03"}}
         #   }
         self.base = base_currency
+        self.today_date_str = today_as_str() if today_date_str is None else today_date_str
+        self.stub = stub
         if stub is None:
             # store APP_ID
             self.app_id = os.environ.get('OPEN_EXCHANGE_APP_ID', None)
             if self.app_id is None:
                 raise Exception(f"Missing environment variable OPEN_EXCHANGE_APP_ID") 
+            self.filesystem_cache_path = filesystem_cache_path
+            self.cache = self.load_exchange_rate_cache()
         else:
             # Check for wildcard date stub 
             self.stub_has_wildcard_date = '*' in stub
@@ -45,6 +64,34 @@ class ExchangeRateService:
                     self.validate_rates(stub[date]['rates'])
             self.stub = stub
 
+    def set_filesystem_cache_path(self, path):
+        self.filesystem_cache_path = path
+            
+    def load_exchange_rate_cache(self) -> Dict[str, ExchangeRateCacheEntry]:
+        with open(self.filesystem_cache_path, "r") as file:
+            data = json.load(file)
+        
+        # Convert dictionary values to ExchangeRateCacheEntry instances
+        return {
+            date: ExchangeRateCacheEntry(
+                last_read_date=entry["last_read_date"],
+                read_count=entry["read_count"],
+                rates=entry["rates"]
+            )
+            for date, entry in data.items()
+        }
+        
+    def save_exchange_rate_cache(self):
+        with open(self.filesystem_cache_path, "w") as file:
+            # Convert dataclass instances back to dictionaries for JSON serialization
+            # Removing stale cache entries (not used in the last 10 days)
+            json.dump(
+                {date: entry.__dict__ for date, entry in self.cache.items() 
+                 if date_str_diff_in_days(self.today_date_str, entry.last_read_date) < 10},
+                file,
+                indent=4
+            )       
+
     def validate_rates(self, rates):
         for currency in rates:
             if not isinstance(currency, str):
@@ -57,15 +104,23 @@ class ExchangeRateService:
             date = todays_date()
         date_str = date_as_str(date)
         if self.stub is None:
-            url = f"https://openexchangerates.org/api/historical/{date_str}.json?app_id={self.app_id}"
-            response = requests.get(url)
-            # TODO: Convert historical base='USD' response to supplied base_currency
-            if response.status_code == 200:
-                data = response.json()
-                exchange_rate = round(1 / data['rates']['EUR'], 5)
+            if date_str not in self.cache:
+                url = f"https://openexchangerates.org/api/historical/{date_str}.json?app_id={self.app_id}"
+                response = requests.get(url)
+                if response.status_code == 200:
+                    rates = response.json().get('rates', None)
+                    self.cache[date_str] = ExchangeRateCacheEntry(
+                        last_read_date=self.today_date_str,
+                        read_count=1,
+                        rates=rates
+                    )
+                else:
+                    raise Exception(f"ERROR: ({response.status_code}) fetching data from openexchangerates.org")
             else:
-                exchange_rate = 1
-                print(f"ERROR: ({response.status_code}) fetching data from openexchangerates.org")
+                self.cache[date_str].read_count += 1
+                self.cache[date_str].last_read_date = self.today_date_str
+            # TODO: Convert historical base='USD' response to supplied base_currency
+            exchange_rate = round(1 / self.cache[date_str].rates['EUR'], 5)
             return exchange_rate
         else: # supplied exchange rate(s)
             if self.stub_has_wildcard_date:
