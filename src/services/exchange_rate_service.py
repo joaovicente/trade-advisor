@@ -5,6 +5,7 @@ import os
 from typing import Dict
 
 import requests
+from repositories.file_repository import FileRepository
 from services.utils_service import date_as_str, date_str_diff_in_days, todays_date, today_as_str
 
 @dataclass
@@ -16,8 +17,8 @@ class ExchangeRateCacheEntry:
 class ExchangeRateService:
     def __init__(self,  
                  base_currency='EUR', 
-                 stub=None, 
-                 filesystem_cache_path='./test/data/exchange_rate_cache.json', 
+                 stub=None,
+                 path='./test/data/exchange_rate_cache.json', 
                  today_date_str=None # for testing only
                  ):
         # TODO: Update with updated description of the class behavior
@@ -47,7 +48,7 @@ class ExchangeRateService:
             self.app_id = os.environ.get('OPEN_EXCHANGE_APP_ID', None)
             if self.app_id is None:
                 raise Exception(f"Missing environment variable OPEN_EXCHANGE_APP_ID") 
-            self.filesystem_cache_path = filesystem_cache_path
+            self.file_repository = FileRepository(path)
             self.cache = self.load_exchange_rate_cache()
         else:
             # Check for wildcard date stub 
@@ -64,13 +65,14 @@ class ExchangeRateService:
                     self.validate_rates(stub[date]['rates'])
             self.stub = stub
 
-    def set_filesystem_cache_path(self, path):
-        self.filesystem_cache_path = path
+    def set_path(self, path):
+        self.file_repository.set_path(path)
             
     def load_exchange_rate_cache(self) -> Dict[str, ExchangeRateCacheEntry]:
-        with open(self.filesystem_cache_path, "r") as file:
-            data = json.load(file)
-        
+        data_as_str = self.file_repository.load()
+        if data_as_str is None:
+            data_as_str = "{}"
+        data = json.loads(data_as_str)
         # Convert dictionary values to ExchangeRateCacheEntry instances
         return {
             date: ExchangeRateCacheEntry(
@@ -82,15 +84,16 @@ class ExchangeRateService:
         }
         
     def save_exchange_rate_cache(self):
-        with open(self.filesystem_cache_path, "w") as file:
-            # Convert dataclass instances back to dictionaries for JSON serialization
-            # Removing stale cache entries (not used in the last 10 days)
-            json.dump(
-                {date: entry.__dict__ for date, entry in self.cache.items() 
-                 if date_str_diff_in_days(self.today_date_str, entry.last_read_date) < 10},
-                file,
-                indent=4
-            )       
+        # Convert dataclass instances back to dictionaries for JSON serialization
+        # Removing stale cache entries (not used in the last 10 days)
+        cache_data = {
+            date: entry.__dict__ 
+            for date, entry in self.cache.items() 
+            if date_str_diff_in_days(self.today_date_str, entry.last_read_date) < 10
+        }
+        # Convert the data to a JSON string
+        json_string = json.dumps(cache_data, indent=4)        
+        self.file_repository.save(json_string)
 
     def validate_rates(self, rates):
         for currency in rates:

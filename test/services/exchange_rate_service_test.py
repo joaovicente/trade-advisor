@@ -26,7 +26,7 @@ def test_exchange_rate_service_stub_with_specific_dates():
     
 def test_filesystem_cache_reading():
     load_dotenv()
-    svc = ExchangeRateService(filesystem_cache_path='./test/data/exchange_rate_cache.json')
+    svc = ExchangeRateService(path='./test/data/exchange_rate_cache.json')
     assert svc.cache['2025-01-01'].read_count == 1
     assert svc.cache['2025-01-01'].last_read_date == "2025-01-01"
     assert svc.cache['2025-01-01'].rates['EUR'] == 0.966096
@@ -36,10 +36,10 @@ def test_filesystem_cache_reading():
     assert svc.cache['2025-01-02'].rates['EUR'] == 0.973909
     assert svc.cache['2025-01-02'].rates['CHF'] == 0.912095
     
-def test_cache_update():
+def test_cache_update_on_filesystem():
     load_dotenv()
     svc = ExchangeRateService(
-        filesystem_cache_path='./test/data/exchange_rate_cache.json', 
+        path='./test/data/exchange_rate_cache.json', 
         today_date_str='2025-01-12'
         )
     # Given a Stale cache entry
@@ -50,11 +50,11 @@ def test_cache_update():
     # When Recently accessed entry is accessed '2025-01-02' one more time
     svc.get_rate('USD', parse_date('2025-01-02'))
     # And the cache is updated
-    svc.set_filesystem_cache_path('./test/data/tmp/exchange_rate_cache.json')
+    svc.set_path('./test/data/tmp/exchange_rate_cache.json')
     svc.save_exchange_rate_cache()
     # And reloaded
     svc = ExchangeRateService(
-        filesystem_cache_path='./test/data/tmp/exchange_rate_cache.json', 
+        path='./test/data/tmp/exchange_rate_cache.json', 
         today_date_str='2025-01-13'
         )
     # Then Stale entry will have been flushed
@@ -66,16 +66,26 @@ def test_cache_update():
     # And Recent entry read_count to be incremented by 1
     assert svc.cache['2025-01-02'].read_count == 21
     
+@pytest.mark.skip(reason="Uses S3 API")
+def test_s3_read_and_write():
+    load_dotenv()
+    s3_bucket_path = os.environ.get('TRADE_ADVISOR_S3_BUCKET', None)
+    path = s3_bucket_path + '/tmp/exchange_rate_cache.json' 
+    svc = ExchangeRateService(path = path, today_date_str='2025-01-12')
+    svc.get_rate('USD', parse_date('2025-01-02'))
+    svc.save_exchange_rate_cache()
+    svc = ExchangeRateService(path = path, today_date_str='2025-01-12')
+    assert '2025-01-02' in svc.cache
     
 @pytest.mark.skip(reason="Uses quota from API")
 def test_cache_miss():
     load_dotenv()
     svc = ExchangeRateService(
-        filesystem_cache_path='./test/data/exchange_rate_cache.json', 
+        path='./test/data/exchange_rate_cache.json', 
         today_date_str='2025-01-12'
         )
     svc.get_rate('USD', parse_date('2025-01-03'))
-    svc.set_filesystem_cache_path('./test/data/tmp/exchange_rate_cache.json')
+    svc.set_path('./test/data/tmp/exchange_rate_cache.json')
     assert '2025-01-03' in svc.cache
     assert svc.cache['2025-01-03'].rates['EUR'] == 0.969697
      
@@ -84,6 +94,3 @@ def test_get_rate_using_eur_base():
     svc = ExchangeRateService(base_currency='EUR')
     assert svc.get_rate('USD', datetime.date(2025, 1, 1)) == 0
     assert svc.get_rate('CHF', datetime.date(2025, 1, 1)) == 0
-    
-def test_s3_cache():
-    assert False, "TODO: Implement this test"
