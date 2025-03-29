@@ -14,19 +14,6 @@ def closed_position_builder(csv):
         closed_price=float(csv[5])
     )
    
-#def tax_calculator_service_config_fixed_exchange():
-#    cfg = TaxCalculatorServiceConfig(fixed_exchange_rates={"*": 1})
-#    return cfg
-    
-#def tax_calculator_service_config():
-#    cfg = TaxCalculatorServiceConfig(fixed_exchange_rates={
-#        utils.parse_date("2022-11-30"): 1.04235,
-#        utils.parse_date("2022-12-31"): 1.07265,
-#        utils.parse_date("2023-11-30"): 1.08935,
-#        utils.parse_date("2023-12-31"): 1.10376
-#    })
-#    return cfg
-
 def exchange_rate_service_with_multi_date_stub():
     return ExchangeRateService(stub= {
                 '2022-11-30': {'rates': {'USD': 1.04235}},
