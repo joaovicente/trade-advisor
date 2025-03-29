@@ -90,7 +90,13 @@ def test_cache_miss():
     assert svc.cache['2025-01-03'].rates['EUR'] == 0.969697
      
 def test_get_rate_using_eur_base():
-    # TODO: Implement this test
+    """ Verify currency conversions using EUR as base currency, when API default base currency is USD """
+    load_dotenv()
     svc = ExchangeRateService(base_currency='EUR')
-    assert svc.get_rate('USD', datetime.date(2025, 1, 1)) == 0
-    assert svc.get_rate('CHF', datetime.date(2025, 1, 1)) == 0
+    # from test/data/exchange_rate_cache.json
+    E_EUR = 0.966096
+    E_CHF = 0.907733
+    us_to_eur = round(1 / E_EUR, 5)
+    chf_to_eur = round(E_CHF * (1 / E_EUR), 5)
+    assert svc.get_rate(from_currency='USD', date=datetime.date(2025, 1, 1)) == us_to_eur
+    assert svc.get_rate(from_currency='CHF', date=datetime.date(2025, 1, 1)) == chf_to_eur

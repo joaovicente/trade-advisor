@@ -102,7 +102,7 @@ class ExchangeRateService:
             if not isinstance(rates[currency], float):
                 raise Exception(f"Rate {rates[currency]} is not a float")
         
-    def get_rate(self, currency: str, date: datetime.date):
+    def get_rate(self, from_currency: str, date: datetime.date):
         if date > todays_date():
             date = todays_date()
         date_str = date_as_str(date)
@@ -122,13 +122,21 @@ class ExchangeRateService:
             else:
                 self.cache[date_str].read_count += 1
                 self.cache[date_str].last_read_date = self.today_date_str
-            # TODO: Convert historical base='USD' response to supplied base_currency
-            exchange_rate = round(1 / self.cache[date_str].rates['EUR'], 5)
+            # Supports only EUR as base currency
+            if self.base == 'EUR':
+                if from_currency == 'USD':
+                    exchange_rate = round(1 / self.cache[date_str].rates['EUR'], 5)
+                else:
+                    # Multi step conversion to EUR from other currencies via USD, as openechangerates.org uses USD as default currency
+                    exchange_rate = round( self.cache[date_str].rates[from_currency] * 1 / self.cache[date_str].rates['EUR'], 5)
+                return exchange_rate
+            else:
+                raise Exception(f"Base currency {self.base} is not supported yet")
             return exchange_rate
         else: # supplied exchange rate(s)
             if self.stub_has_wildcard_date:
-                return self.stub['*']['rates'][currency]
+                return self.stub['*']['rates'][from_currency]
             elif date_str in self.stub:
-                return self.stub[date_str]['rates'][currency]
+                return self.stub[date_str]['rates'][from_currency]
             else:
                 raise Exception(f"Date {date_str} not found in found for in stub: {self.stub}")
