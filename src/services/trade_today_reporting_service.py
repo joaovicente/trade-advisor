@@ -1,12 +1,14 @@
 import datetime
-from services.tax_calculator_service import TaxCalculatorService, TaxCalculatorServiceConfig
+from services.exchange_rate_service import ExchangeRateService
+from services.tax_calculator_service import TaxCalculatorService
 from services.position_stats_service import PositionStatsService
 from services.runtime_stock_stats_service import RuntimeStockStatsService
 from services.stock_compute_service import StockComputeService
 from services.dataroma_service import DataromaService
 
 class TradeTodayReportingService():
-    def __init__(self, today: str, tickers, open_positions, closed_positions, context, user="unknown", rapid=False, skip_currency_conversion=False):
+    def __init__(self, today: str, tickers, open_positions, closed_positions, context, user="unknown", rapid=False, 
+                 exchange_rate_service: ExchangeRateService = None):
         self.cli_command = ""
         self.trades_today = []
         self.stock_stats_today = []
@@ -18,11 +20,7 @@ class TradeTodayReportingService():
         self.rapid = rapid
         self.position_stats_service = PositionStatsService(open_positions, closed_positions)
         self.dataroma_service = DataromaService()
-        if skip_currency_conversion:
-            tax_calculator_service_config = TaxCalculatorServiceConfig(fixed_exchange_rates={"*": 1})
-        else:
-            tax_calculator_service_config = TaxCalculatorServiceConfig()
-        self.tax_calculator_service = TaxCalculatorService(closed_positions=closed_positions, config=tax_calculator_service_config)
+        self.tax_calculator_service = TaxCalculatorService(closed_positions=closed_positions, exchange_rate_service=exchange_rate_service)
         svc = StockComputeService(tickers, today, open_positions)
         trades = svc.trades_today()
         # Command line expanded

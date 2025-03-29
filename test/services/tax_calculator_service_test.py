@@ -1,5 +1,6 @@
 from models.closed_position import ClosedPosition
-from services.tax_calculator_service import TaxCalculatorService, TaxCalculatorServiceConfig
+from services.exchange_rate_service import ExchangeRateService
+from services.tax_calculator_service import TaxCalculatorService
 from test import utils
 
 def closed_position_builder(csv):
@@ -13,18 +14,27 @@ def closed_position_builder(csv):
         closed_price=float(csv[5])
     )
    
-def tax_calculator_service_config_fixed_exchange():
-    cfg = TaxCalculatorServiceConfig(fixed_exchange_rates={"*": 1})
-    return cfg
+#def tax_calculator_service_config_fixed_exchange():
+#    cfg = TaxCalculatorServiceConfig(fixed_exchange_rates={"*": 1})
+#    return cfg
     
-def tax_calculator_service_config():
-    cfg = TaxCalculatorServiceConfig(fixed_exchange_rates={
-        utils.parse_date("2022-11-30"): 1.04235,
-        utils.parse_date("2022-12-31"): 1.07265,
-        utils.parse_date("2023-11-30"): 1.08935,
-        utils.parse_date("2023-12-31"): 1.10376
-    })
-    return cfg
+#def tax_calculator_service_config():
+#    cfg = TaxCalculatorServiceConfig(fixed_exchange_rates={
+#        utils.parse_date("2022-11-30"): 1.04235,
+#        utils.parse_date("2022-12-31"): 1.07265,
+#        utils.parse_date("2023-11-30"): 1.08935,
+#        utils.parse_date("2023-12-31"): 1.10376
+#    })
+#    return cfg
+
+def exchange_rate_service_with_multi_date_stub():
+    return ExchangeRateService(stub= {
+                '2022-11-30': {'rates': {'USD': 1.04235}},
+                '2022-12-31': {'rates': {'USD': 1.07265}},
+                '2023-11-30': {'rates': {'USD': 1.08935}},
+                '2023-12-31': {'rates': {'USD': 1.10376}}
+        }
+    )
 
 def test_tax_year_creation():
     closed_positions_csv = [
@@ -33,7 +43,8 @@ def test_tax_year_creation():
         "2023-12-30,AAPL,1000,1,2023-12-31,0.5", # cost: 1000, loss: 500
     ]
     closed_positions = [closed_position_builder(p) for p in closed_positions_csv]
-    service = TaxCalculatorService(closed_positions=closed_positions, config=tax_calculator_service_config())
+    service = TaxCalculatorService(closed_positions=closed_positions, 
+                                   exchange_rate_service = exchange_rate_service_with_multi_date_stub())
     
     tax_years = service.tax_years_dict
     assert len(tax_years) == 2
@@ -49,7 +60,8 @@ def test_tax_payment_window():
         "2023-12-01,AAPL,1000,1,2023-12-15,0.5", # cost: 1000, loss: 500
     ]
     closed_positions = [closed_position_builder(p) for p in closed_positions_csv]
-    service = TaxCalculatorService(closed_positions=closed_positions, config=tax_calculator_service_config())
+    service = TaxCalculatorService(closed_positions=closed_positions, 
+                                   exchange_rate_service = exchange_rate_service_with_multi_date_stub())
 
     if True: 
         # Test tax payment window for December 2022

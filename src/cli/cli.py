@@ -4,6 +4,7 @@ from repositories.closed_position_repository import ClosedPositionRepository
 from repositories.open_position_repository import OpenPositionRepository
 from repositories.selected_tickers_repository import SelectedTickersRepository
 from repositories.user_repository import UserRepository
+from services.exchange_rate_service import ExchangeRateService
 from services.stock_compute_service import StockComputeService
 from services.open_position_service import OpenPositionService
 from services.trade_today_reporting_service import TradeTodayReportingService
@@ -94,8 +95,18 @@ def trade_today(tickers, today, no_pos, context, position, output, user, rapid, 
             else:
                 supplied_ticker_list = tickers.split(',')
                 tickers = ','.join(list(set(position_ticker_list + supplied_ticker_list)))
-    rep_svc = TradeTodayReportingService(today, tickers, open_positions, closed_positions, context, user, 
-                                         rapid=rapid, skip_currency_conversion=skip_currency_conversion)
+    if skip_currency_conversion:
+        # Initialize ExchangeRateService with a stub for testing if skip_currency_conversion is True
+        exchange_rate_service = ExchangeRateService(stub={'*': {'rates': {'USD': 1.00, 'CHF': 1.00}}})
+    else:
+        # Initialize ExchangeRateService
+        s3_prefix = get_s3_prefix()
+        exchange_rate_service = ExchangeRateService(path=f"{s3_prefix}/services/exchange_rate_service/exchange_rate_cache.json")
+    rep_svc = TradeTodayReportingService(today, tickers, open_positions, closed_positions, context, user, rapid=rapid, 
+                                         exchange_rate_service=exchange_rate_service)
+    # Update ExchangeRateCache with retrived dates (to avoid uneccessary API calls)
+    if not skip_currency_conversion:
+        exchange_rate_service.save_exchange_rate_cache()
     print(rep_svc.console_report())
     if 'whatsapp' in output:
         WhatsappNotificationService().send_message(rep_svc.whatsapp_report())

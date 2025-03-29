@@ -1,41 +1,9 @@
 from typing import Dict, List
 from models.closed_position import ClosedPosition
-import requests
+from services.exchange_rate_service import ExchangeRateService
 from services.utils_service import date_as_str, todays_date, parse_date
 import os
 
-
-class TaxCalculatorServiceConfig:
-    def __init__(self, fixed_exchange_rates = None):
-        self.fixed_exchange_rates = fixed_exchange_rates
-        
-def exchange_rate(date, cfg: TaxCalculatorServiceConfig) -> float:
-    if date > todays_date():
-        date = todays_date()
-    date_str = date_as_str(date)
-    
-    if cfg.fixed_exchange_rates is None:
-        open_exchange_rates_app_id = os.environ.get('OPEN_EXCHANGE_APP_ID', None)
-        if open_exchange_rates_app_id is None:
-            raise Exception(f"Missing environment variable OPEN_EXCHANGE_APP_ID - {date}") 
-        url = f"https://openexchangerates.org/api/historical/{date_str}.json?app_id={open_exchange_rates_app_id}"
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            exchange_rate = round(1 / data['rates']['EUR'], 5)
-        else:
-            exchange_rate = 1
-            print(f"ERROR: ({response.status_code}) fetching data from openexchangerates.org")
-        return exchange_rate
-    else: # supplied exchange rate(s)
-        # config is date -> rate dictionary {"*": 1}
-        if cfg.fixed_exchange_rates.get("*", None) != None:
-            return cfg.fixed_exchange_rates.get("*")
-        elif cfg.fixed_exchange_rates.get(date, None) != None:
-            return cfg.fixed_exchange_rates.get(date)
-        else:
-            raise Exception(f"No exchange rate found for {date} in fixed_forex_pct")
-    
 class TradeGainItem:
     def __init__(self, position: ClosedPosition):
         self.ticker = position.ticker
@@ -56,8 +24,7 @@ class TradeGainItem:
             self.capital_loss = self.cost_of_shares_sold - self.sale_price
         
 class TaxPaymentWindow:
-    def __init__(self, start_month, end_month: int, year: int, closed_positions: List[ClosedPosition], svc_config: TaxCalculatorServiceConfig):
-        self.config = svc_config
+    def __init__(self, start_month, end_month: int, year: int, closed_positions: List[ClosedPosition], exchange_rate_service):
         self.start_month = start_month
         self.end_month = end_month
         self.year = year
@@ -67,6 +34,7 @@ class TaxPaymentWindow:
         self.total_chargeable_gain = 0
         self.total_capital_loss = 0
         self.month_name = "Nov" if end_month == 11 else "Dec"
+        self.exchange_rate_service = exchange_rate_service
         #: Get exchange rate for the last day of the end_month, or today's if in future
         # It will either be 30 of November or 31 of December
         if end_month == 11:
@@ -77,7 +45,7 @@ class TaxPaymentWindow:
             self.tax_due_date = "January 31"
         self.cgt_tax_rate = 0.33
         self.yearly_tax_exemption = 1270.00
-        self.exchange_rate = exchange_rate(end_date, cfg=self.config)
+        self.exchange_rate = exchange_rate_service.get_rate(from_currency='USD', date=end_date)
         for position in closed_positions:
             if position.closed_date.month <= end_month and position.closed_date.month >= start_month:
                 self.trade_gain_items.append(TradeGainItem(position))
@@ -182,14 +150,13 @@ class TaxYear:
     def __init__(self, 
                  year: int, 
                  closed_positions: List[ClosedPosition],
-                 svc_config: TaxCalculatorServiceConfig
+                 exchange_rate_service
                  ):
-        self.config = svc_config
         self.year = year
         self.closed_positions = [position for position in closed_positions if position.closed_date.year == year]
         self.tax_payment_windows_dict: Dict[int, TaxPaymentWindow] = {
-            11: TaxPaymentWindow(1, 11, year, closed_positions=self.closed_positions, svc_config=svc_config),
-            12: TaxPaymentWindow(12, 12, year, closed_positions=self.closed_positions, svc_config=svc_config)
+            11: TaxPaymentWindow(1, 11, year, closed_positions=self.closed_positions, exchange_rate_service=exchange_rate_service),
+            12: TaxPaymentWindow(12, 12, year, closed_positions=self.closed_positions, exchange_rate_service=exchange_rate_service)
         }
     
     def tax_payment_window(self, end_month: int) -> TaxPaymentWindow:
@@ -270,9 +237,11 @@ class CapitalGainTaxReturn:
 
     
 class TaxCalculatorService:
-    def __init__(self, closed_positions: List[ClosedPosition] = [], config: TaxCalculatorServiceConfig = TaxCalculatorServiceConfig()):
-        self.config = config
+    def __init__(self, closed_positions: List[ClosedPosition] = [], exchange_rate_service: ExchangeRateService = None):
         self.closed_positions = closed_positions
+        if exchange_rate_service is None:
+            raise Exception("ExchangeRateService not provided")
+        self.exchange_rate_service = exchange_rate_service
         self.tax_years_dict: Dict[int, TaxYear] = {}
         self.load_tax_years()
         remaining_tax_exemption_in_euro = 0
@@ -295,7 +264,7 @@ class TaxCalculatorService:
     def load_tax_years(self):
         # Create TaxYear objects for each year that has open positions
         years = set(position.closed_date.year for position in self.closed_positions)
-        self.tax_years_dict = {year: TaxYear(year, self.closed_positions, self.config) for year in years}
+        self.tax_years_dict = {year: TaxYear(year, self.closed_positions, self.exchange_rate_service) for year in years}
         
     def tax_year(self, year: int) -> TaxYear:
         return self.tax_years_dict.get(year)
