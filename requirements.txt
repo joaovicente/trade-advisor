@@ -12,4 +12,5 @@ twilio==9.2.3
 sendgrid==6.11.0
 boto3==1.35.14
 BeautifulSoup4==4.12.3
-dotenv
+dotenv==0.9.9
+iso4217==1.12.20240625
