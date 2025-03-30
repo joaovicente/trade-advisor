@@ -14,7 +14,7 @@ def test_trade_today_with_open_position():
     ticker = "SNOW"
     today = "2024-05-31"
     open_positions = [
-        OpenPosition(date=parse_date("2024-04-09"), ticker=ticker, size=32.1377968, price=155.58)
+        OpenPosition(date=parse_date("2024-04-09"), ticker=ticker, size=32.1377968, price=155.58, currency='USD'),
     ]   
     scmp = StockComputeService(ticker, today, open_positions)
     trades = scmp.trades_today()

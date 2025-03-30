@@ -13,7 +13,7 @@ def test_trade_today_sell_single_open_position():
     #2024-04-09, SNOW Close: 155.58, RSI: 35.42, RSI-MA: 34.99, Position: 0.00, PNL: 0.00%
     #2024-04-09, SNOW BUY CREATE, 155.58
     open_positions = [
-        OpenPosition(date=parse_date("2024-04-09"), ticker=ticker, size=32.1377968, price=155.58)
+        OpenPosition(date=parse_date("2024-04-09"), ticker=ticker, size=32.1377968, price=155.58, currency='USD'),
     ]   
     # Find the date when it would be sold (at loss) and then test SELL action is returned
     # TODO: Adjust test when strategy improves to sell when position peak profit halves
@@ -36,8 +36,8 @@ def test_trade_today_sell_single_open_position():
 def test_trade_today_sell_multiple_open_positions():
     ticker = "SNOW"
     open_positions = [
-        OpenPosition(date=parse_date("2023-10-30"), ticker='AMZN', size=38.5445575, price=129.72),
-        OpenPosition(date=parse_date("2024-04-09"), ticker='SNOW', size=32.1377968, price=155.58)
+        OpenPosition(date=parse_date("2023-10-30"), ticker='AMZN', size=38.5445575, price=129.72, currency='USD'),
+        OpenPosition(date=parse_date("2024-04-09"), ticker='SNOW', size=32.1377968, price=155.58, currency='USD'),
     ]   
     closing_date = "2024-05-31"
     sell_date = "2024-06-01"
@@ -68,7 +68,7 @@ def test_trade_today_buy_without_open_positions():
 def test_trade_today_rsi_calculation_bug():
     ticker = "SNOW"
     open_positions = [
-        OpenPosition(date=parse_date("2024-04-09"), ticker='SNOW', size=32.1377968, price=155.58)
+        OpenPosition(date=parse_date("2024-04-09"), ticker='SNOW', size=32.1377968, price=155.58, currency='USD'),
     ]   
     closing_date = "2024-07-17"
    

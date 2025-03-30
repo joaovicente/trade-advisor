@@ -10,8 +10,9 @@ def closed_position_builder(csv):
         ticker=csv[1],
         size=float(csv[2]),
         price=float(csv[3]),
-        closed_date=utils.parse_date(csv[4]),
-        closed_price=float(csv[5])
+        currency=csv[4],
+        closed_date=utils.parse_date(csv[5]),
+        closed_price=float(csv[6])
     )
    
 def exchange_rate_service_with_multi_date_stub():
@@ -25,9 +26,9 @@ def exchange_rate_service_with_multi_date_stub():
 
 def test_tax_year_creation():
     closed_positions_csv = [
-        "2022-12-01,SPOT,1000,1,2022-12-31,0.5", # cost: 1000, loss: 500
-        "2023-08-01,BRK-B,1000,1,2023-09-02,5",  # cost: 1000, gain: 4000
-        "2023-12-30,AAPL,1000,1,2023-12-31,0.5", # cost: 1000, loss: 500
+        "2022-12-01,SPOT,1000,1,USD,2022-12-31,0.5", # cost: 1000, loss: 500
+        "2023-08-01,BRK-B,1000,1,USD,2023-09-02,5",  # cost: 1000, gain: 4000
+        "2023-12-30,AAPL,1000,1,USD,2023-12-31,0.5", # cost: 1000, loss: 500
     ]
     closed_positions = [closed_position_builder(p) for p in closed_positions_csv]
     service = TaxCalculatorService(closed_positions=closed_positions, 
@@ -42,9 +43,9 @@ def test_tax_year_creation():
     
 def test_tax_payment_window():
     closed_positions_csv = [
-        "2022-12-01,SPOT,1000,1,2022-12-31,0.5", # cost: 1000, loss: 500
-        "2023-08-01,BRK-B,1000,1,2023-09-02,5",  # cost: 1000, gain: 4000
-        "2023-12-01,AAPL,1000,1,2023-12-15,0.5", # cost: 1000, loss: 500
+        "2022-12-01,SPOT,1000,1,USD,2022-12-31,0.5", # cost: 1000, loss: 500
+        "2023-08-01,BRK-B,1000,1,USD,2023-09-02,5",  # cost: 1000, gain: 4000
+        "2023-12-01,AAPL,1000,1,USD,2023-12-15,0.5", # cost: 1000, loss: 500
     ]
     closed_positions = [closed_position_builder(p) for p in closed_positions_csv]
     service = TaxCalculatorService(closed_positions=closed_positions, 

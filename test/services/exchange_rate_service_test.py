@@ -5,28 +5,31 @@ import pytest
 from services.exchange_rate_service import ExchangeRateService
 from services.utils_service import parse_date
 
+TEST_PATH = './test/data/exchange_rate_cache.json'
+TEST_TMP_PATH = './test/data/tmp/exchange_rate_cache.json'
+
 def test_exchange_rate_service_stub_with_wildcard_date():
-    stub = {
-        '*': {'rates': {'USD': 1.01, 'CHF': 1.02}}
-    }
+    stub = ExchangeRateService.WILCARD_DATE_STUB_EXAMPLE
     svc = ExchangeRateService(base_currency='EUR', stub=stub)
     assert svc.get_rate('USD', datetime.date(2025, 1, 13)) == 1.01
     assert svc.get_rate('CHF', datetime.date(2025, 1, 14)) == 1.02
     
 def test_exchange_rate_service_stub_with_specific_dates():
-    stub = {
-        '2025-01-01': {'rates': {'USD': 1.01, 'CHF': 1.02}},
-        '2025-01-02': {'rates': {'USD': 1.03, 'CHF': 1.04}}
-    }
+    stub = ExchangeRateService.MULTI_DATE_STUB_EXAMPLE
     svc = ExchangeRateService(base_currency='EUR', stub=stub)
     assert svc.get_rate('USD', datetime.date(2025, 1, 1)) == 1.01
     assert svc.get_rate('CHF', datetime.date(2025, 1, 1)) == 1.02
     assert svc.get_rate('USD', datetime.date(2025, 1, 2)) == 1.03
     assert svc.get_rate('CHF', datetime.date(2025, 1, 2)) == 1.04
     
+def test_exchange_rate_service_stub_with_no_path():
+    with pytest.raises(Exception, match="Missing path for exchange rate cache"):
+        ExchangeRateService(base_currency='EUR')
+    
+    
 def test_filesystem_cache_reading():
     load_dotenv()
-    svc = ExchangeRateService(path='./test/data/exchange_rate_cache.json')
+    svc = ExchangeRateService(path=TEST_PATH)
     assert svc.cache['2025-01-01'].read_count == 1
     assert svc.cache['2025-01-01'].last_read_date == "2025-01-01"
     assert svc.cache['2025-01-01'].rates['EUR'] == 0.966096
@@ -39,7 +42,7 @@ def test_filesystem_cache_reading():
 def test_cache_update_on_filesystem():
     load_dotenv()
     svc = ExchangeRateService(
-        path='./test/data/exchange_rate_cache.json', 
+        path=TEST_PATH,
         today_date_str='2025-01-12'
         )
     # Given a Stale cache entry
@@ -81,22 +84,22 @@ def test_s3_read_and_write():
 def test_cache_miss():
     load_dotenv()
     svc = ExchangeRateService(
-        path='./test/data/exchange_rate_cache.json', 
+        path=TEST_PATH,
         today_date_str='2025-01-12'
         )
     svc.get_rate('USD', parse_date('2025-01-03'))
-    svc.set_path('./test/data/tmp/exchange_rate_cache.json')
+    svc.set_path(TEST_TMP_PATH)
     assert '2025-01-03' in svc.cache
     assert svc.cache['2025-01-03'].rates['EUR'] == 0.969697
      
 def test_get_rate_using_eur_base():
     """ Verify currency conversions using EUR as base currency, when API default base currency is USD """
     load_dotenv()
-    svc = ExchangeRateService(base_currency='EUR')
-    # from test/data/exchange_rate_cache.json
+    svc = ExchangeRateService(base_currency='EUR', path=TEST_PATH)
     E_EUR = 0.966096
     E_CHF = 0.907733
     us_to_eur = round(1 / E_EUR, 5)
     chf_to_eur = round(E_CHF * (1 / E_EUR), 5)
     assert svc.get_rate(from_currency='USD', date=datetime.date(2025, 1, 1)) == us_to_eur
     assert svc.get_rate(from_currency='CHF', date=datetime.date(2025, 1, 1)) == chf_to_eur
+    assert svc.get_rate(from_currency='EUR', date=datetime.date(2025, 1, 1)) == 1.0

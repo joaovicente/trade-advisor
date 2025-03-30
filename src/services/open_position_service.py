@@ -27,4 +27,5 @@ class OpenPositionService:
             OpenPosition(datetime.strptime(position_part[0], "%Y-%m-%d").date(), 
                          position_part[1], 
                          float(position_part[2]), 
-                         float(position_part[3])))
+                         float(position_part[3]),
+                         position_part[4]))

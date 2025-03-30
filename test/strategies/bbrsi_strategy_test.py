@@ -22,7 +22,7 @@ def test_sell_below_bollinger_bottom():
     # 2023-08-18 BUY AMD because AMD Close (104.44,105.45) above Bollinger bottom (104.51) while RSI (40.88) below 44.00
     ticker = "AMD"
     open_positions = [
-        OpenPosition(date=parse_date("2023-08-18"), ticker='AMD', size=38.30, price=104.45),
+        OpenPosition(date=parse_date("2023-08-18"), ticker='AMD', size=38.30, price=104.45, currency='USD'),
     ]   
     # 2023-09-21 SELL AMD because AMD Close (100.34, 96.11) below Bollinger bottom (97.73) and loss above 5% - pnl-pct: -10.5%
     closing_date = "2023-09-21"
@@ -38,7 +38,7 @@ def test_sell_upon_bb_middle_inflection():
     # 2023-09-25 BUY AMD because AMD Close (96.20,97.38) crossover Bollinger bottom (95.83) while RSI (36.04) below 44.00
     ticker = "AMD"
     open_positions = [
-        OpenPosition(date=parse_date("2023-09-25"), ticker='AMD', size=41.08, price=97.38),
+        OpenPosition(date=parse_date("2023-09-25"), ticker='AMD', size=41.08, price=97.38, currency='USD'),
     ]   
     # 2024-02-20 SELL AMD because AMD Bollinger mid inflection sustained (172.61, 173.31, 173.29, 173.17) - pnl-pct: 41.76%
     closing_date = "2024-02-20"

@@ -8,6 +8,7 @@ import requests
 from repositories.file_repository import FileRepository
 from services.utils_service import date_as_str, date_str_diff_in_days, todays_date, today_as_str
 
+
 @dataclass
 class ExchangeRateCacheEntry:
     last_read_date: str
@@ -15,35 +16,59 @@ class ExchangeRateCacheEntry:
     rates: Dict[str, float]
 
 class ExchangeRateService:
+    WILCARD_DATE_STUB_EXAMPLE = { '*': {'rates': {'USD': 1.01, 'CHF': 1.02}} }
+    MULTI_DATE_STUB_EXAMPLE = {
+        '2025-01-01': {'rates': {'USD': 1.01, 'CHF': 1.02}},
+        '2025-01-02': {'rates': {'USD': 1.03, 'CHF': 1.04}}
+    }
     def __init__(self,  
                  base_currency='EUR', 
                  stub=None,
-                 path='./test/data/exchange_rate_cache.json', 
+                 path=None, 
                  today_date_str=None # for testing only
                  ):
-        # TODO: Update with updated description of the class behavior
-        #// self returns a dictionary of exchange rates for provided date to a base currency, e.g.
-        #   {
-        #     'date': '2022-11-30',
-        #     'base': 'EUR',
-        #     'rates': {'USD': 1.01, 'CHF': 1.02"}
-        #   }
-        #   similar to https://docs.openexchangerates.org/reference/set-base-currency#basic-request--response
-        # 
-        # One can supply a stub providing fixed rate stub
-        # 1) stub rates regardless of input date:
-        #   { 
-        #       '*': {'rates': {'USD': 1.01, 'CHF': 1.02"}}
-        #   }
-        # 2) stub rates per date:
-        #   { 
-        #       '2022-11-30': {'rates': {'USD': 1.01, 'CHF': 1.02"}},
-        #       '2022-12-31': {'rates': {'USD': 1.00, 'CHF': 1.03"}}
-        #   }
+        """
+        ExchangeRateService uses Open Exchange Rates API to fetch exchange rates.
+        
+        Initializes the ExchangeRateService with the given parameters.
+        
+        Args:
+            base_currency (str): The base currency for conversion (default is 'EUR').
+            stub (dict): Supplies data for testing. see `WILCARD_DATE_STUB_EXAMPLE` and `MULTI_DATE_STUB_EXAMPLE`
+            path (str): The path to the cache file for exchange rates. (s3://.../myfile.json or ./.../myfile.json)
+            today_date_str (str): The date string for today (for testing only).
+           
+        ExchangeRateService uses the https://docs.openexchangerates.org/reference/latest-json endpoint to get the latest exchange rates.\n
+        Given changing base currency (default is USD) requires additional licensing, this class uses USD base currency.\n
+        It caches the results in a local file to avoid repeated API calls.\n
+        Cache structure is as follows:\n
+        .. code-block:: json
+            {
+                "2025-01-01": {
+                    "last_read_date": "2025-01-01",
+                    "read_count": 1,
+                    "rates": {
+                        "USD": 1.01,
+                        "CHF": 1.02
+                    }
+                },
+                "2025-01-02": {
+                    "last_read_date": "2025-01-11",
+                    "read_count": 20,
+                    "rates": {
+                        "USD": 1.03,
+                        "CHF": 1.04
+                    }
+                }
+            }
+        """
         self.base = base_currency
         self.today_date_str = today_as_str() if today_date_str is None else today_date_str
         self.stub = stub
         if stub is None:
+            # Ensure path is provided
+            if path is None:
+                raise Exception(f"Missing path for exchange rate cache")
             # store APP_ID
             self.app_id = os.environ.get('OPEN_EXCHANGE_APP_ID', None)
             if self.app_id is None:
@@ -65,44 +90,18 @@ class ExchangeRateService:
                     self.validate_rates(stub[date]['rates'])
             self.stub = stub
 
-    def set_path(self, path):
-        self.file_repository.set_path(path)
-            
-    def load_exchange_rate_cache(self) -> Dict[str, ExchangeRateCacheEntry]:
-        data_as_str = self.file_repository.load()
-        if data_as_str is None:
-            data_as_str = "{}"
-        data = json.loads(data_as_str)
-        # Convert dictionary values to ExchangeRateCacheEntry instances
-        return {
-            date: ExchangeRateCacheEntry(
-                last_read_date=entry["last_read_date"],
-                read_count=entry["read_count"],
-                rates=entry["rates"]
-            )
-            for date, entry in data.items()
-        }
-        
-    def save_exchange_rate_cache(self):
-        # Convert dataclass instances back to dictionaries for JSON serialization
-        # Removing stale cache entries (not used in the last 10 days)
-        cache_data = {
-            date: entry.__dict__ 
-            for date, entry in self.cache.items() 
-            if date_str_diff_in_days(self.today_date_str, entry.last_read_date) < 10
-        }
-        # Convert the data to a JSON string
-        json_string = json.dumps(cache_data, indent=4)        
-        self.file_repository.save(json_string)
+    def get_rate(self, from_currency: str, date: datetime.date) -> float:
+        """
+        Gets the exchange rate for the given currency for a given date.
 
-    def validate_rates(self, rates):
-        for currency in rates:
-            if not isinstance(currency, str):
-                raise Exception(f"Currency {currency} is not a string")
-            if not isinstance(rates[currency], float):
-                raise Exception(f"Rate {rates[currency]} is not a float")
-        
-    def get_rate(self, from_currency: str, date: datetime.date):
+        Args:
+            from_currency (str): The currency to convert from.
+            date (datetime.date): The date for which to get the exchange rate.
+
+        Returns:
+            float: The exchange rate.
+        """
+        exchange_rate = None
         if date > todays_date():
             date = todays_date()
         date_str = date_as_str(date)
@@ -140,3 +139,48 @@ class ExchangeRateService:
                 return self.stub[date_str]['rates'][from_currency]
             else:
                 raise Exception(f"Date {date_str} not found in found for in stub: {self.stub}")
+            
+    def set_path(self, path):
+        """
+        Used for testing only. Sets the path for the file repository.
+        """
+        self.file_repository.set_path(path)
+            
+    def load_exchange_rate_cache(self) -> Dict[str, ExchangeRateCacheEntry]:
+        data_as_str = self.file_repository.load()
+        if data_as_str is None:
+            data_as_str = "{}"
+        data = json.loads(data_as_str)
+        # Convert dictionary values to ExchangeRateCacheEntry instances
+        return {
+            date: ExchangeRateCacheEntry(
+                last_read_date=entry["last_read_date"],
+                read_count=entry["read_count"],
+                rates=entry["rates"]
+            )
+            for date, entry in data.items()
+        }
+        
+    def save_exchange_rate_cache(self):
+        """
+        Saves the exchange rate cache to the file.\n
+        Updates the cache file with the current state of the cache.\n
+        Removes stale cache entries (not used in the last 10 days).\n
+        Should be called after when application have completed all its currency conversion tasks and is about to exit.\n
+        """
+        cache_data = {
+            date: entry.__dict__ 
+            for date, entry in self.cache.items() 
+            if date_str_diff_in_days(self.today_date_str, entry.last_read_date) < 10
+        }
+        # Convert the data to a JSON string
+        json_string = json.dumps(cache_data, indent=4)        
+        self.file_repository.save(json_string)
+
+    def validate_rates(self, rates):
+        for currency in rates:
+            if not isinstance(currency, str):
+                raise Exception(f"Currency {currency} is not a string")
+            if not isinstance(rates[currency], float):
+                raise Exception(f"Rate {rates[currency]} is not a float")
+        
