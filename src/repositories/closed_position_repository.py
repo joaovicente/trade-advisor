@@ -16,7 +16,8 @@ class ClosedPositionRepository(BaseRepository):
             price=row[3], 
             currency=row[4], 
             closed_date=row[5], 
-            closed_price=row[6]
+            closed_price=row[6],
+            commission=row[7]
             ) for row in query_result]
         return result
     
