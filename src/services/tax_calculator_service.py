@@ -25,10 +25,12 @@ class TradeGainItem:
             self.chargeable_gain = 0
             self.capital_loss = self.cost_of_shares_sold - self.sale_price
         # currency convert attributes below to closed position currency
-        self.sale_price_in_euro = round(self.sale_price / exchange_rate_service.get_rate(from_currency=position.currency, date=exchange_rate_date), 2)
-        self.cost_of_shares_sold_in_euro = round(self.cost_of_shares_sold / exchange_rate_service.get_rate(from_currency=position.currency, date=exchange_rate_date), 2)
-        self.chargeable_gain_in_euro = round(self.chargeable_gain / exchange_rate_service.get_rate(from_currency=position.currency, date=exchange_rate_date), 2)
-        self.capital_loss_in_euro = round(self.capital_loss / exchange_rate_service.get_rate(from_currency=position.currency, date=exchange_rate_date), 2)
+        self.forex =  exchange_rate_service.get_rate(from_currency=position.currency, date=exchange_rate_date)
+        self.currency = position.currency
+        self.sale_price_in_euro = round(self.sale_price / self.forex , 2)
+        self.cost_of_shares_sold_in_euro = round(self.cost_of_shares_sold / self.forex, 2)
+        self.chargeable_gain_in_euro = round(self.chargeable_gain / self.forex, 2)
+        self.capital_loss_in_euro = round(self.capital_loss / self.forex, 2)
         
 class TaxPaymentWindow:
     def __init__(self, start_month, end_month: int, year: int, closed_positions: List[ClosedPosition], exchange_rate_service):
@@ -96,6 +98,7 @@ class TaxPaymentWindow:
                         <th>Cost of shares sold</th>
                         <th>Chargeable gain</th>
                         <th>Capital loss</th>
+                        <th>Currency (forex)</th>
                         <th>Sale price (EUR)</th>
                         <th>Cost of shares sold (EUR)</th>
                         <th>Chargeable gain (EUR)</th>
@@ -113,6 +116,7 @@ class TaxPaymentWindow:
             output += f"<td>{item.cost_of_shares_sold:.2f}</td>"
             output += f"<td>{item.chargeable_gain:.2f}</td>"
             output += f"<td>{item.capital_loss:.2f}</td>"
+            output += f"<td>{item.currency} <small>({item.forex})</small></td>"
             output += f"<td>{item.sale_price_in_euro:.2f}</td>"
             output += f"<td>{item.cost_of_shares_sold_in_euro:.2f}</td>"
             output += f"<td>{item.chargeable_gain_in_euro:.2f}</td>"
