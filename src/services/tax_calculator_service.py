@@ -5,7 +5,7 @@ from services.utils_service import date_as_str, todays_date, parse_date
 import os
 
 class TradeGainItem:
-    def __init__(self, position: ClosedPosition):
+    def __init__(self, position: ClosedPosition, exchange_rate_service: ExchangeRateService, exchange_rate_date: str):
         self.ticker = position.ticker
         self.date_bought = position.date
         self.price_bought = position.price
@@ -14,6 +14,8 @@ class TradeGainItem:
         self.price_sold = position.closed_price
         self.sale_price = position.size * position.closed_price
         self.cost_of_shares_sold = position.size * position.price
+        self.chargeable_gain = 0
+        self.capital_loss = 0
         if self.sale_price > self.cost_of_shares_sold:
             # gain
             self.chargeable_gain = self.sale_price - self.cost_of_shares_sold
@@ -22,6 +24,11 @@ class TradeGainItem:
             # loss
             self.chargeable_gain = 0
             self.capital_loss = self.cost_of_shares_sold - self.sale_price
+        # currency convert attributes below to closed position currency
+        self.sale_price_in_euro = round(self.sale_price / exchange_rate_service.get_rate(from_currency=position.currency, date=exchange_rate_date), 2)
+        self.cost_of_shares_sold_in_euro = round(self.cost_of_shares_sold / exchange_rate_service.get_rate(from_currency=position.currency, date=exchange_rate_date), 2)
+        self.chargeable_gain_in_euro = round(self.chargeable_gain / exchange_rate_service.get_rate(from_currency=position.currency, date=exchange_rate_date), 2)
+        self.capital_loss_in_euro = round(self.capital_loss / exchange_rate_service.get_rate(from_currency=position.currency, date=exchange_rate_date), 2)
         
 class TaxPaymentWindow:
     def __init__(self, start_month, end_month: int, year: int, closed_positions: List[ClosedPosition], exchange_rate_service):
@@ -45,24 +52,20 @@ class TaxPaymentWindow:
             self.tax_due_date = "January 31"
         self.cgt_tax_rate = 0.33
         self.yearly_tax_exemption = 1270.00
-        self.exchange_rate = exchange_rate_service.get_rate(from_currency='USD', date=end_date)
         for position in closed_positions:
             if position.closed_date.month <= end_month and position.closed_date.month >= start_month:
-                self.trade_gain_items.append(TradeGainItem(position))
+                self.trade_gain_items.append(TradeGainItem(position, self.exchange_rate_service, end_date))
                 
     def calculate(self, carried_over_loss_in_euro = 0, remaining_tax_exemption_in_euro = 1270.00):
+        # use chargeable gain and capital loss in euro
         for item in self.trade_gain_items:
-            self.total_sale_price += item.sale_price
-            self.total_cost_of_shares_sold += item.cost_of_shares_sold
-            self.total_chargeable_gain += item.chargeable_gain
-            self.total_capital_loss += item.capital_loss
-        self.total_sale_price_in_euro = round(self.total_sale_price / self.exchange_rate, 2)
-        self.total_cost_of_shares_sold_in_euro = round(self.total_cost_of_shares_sold / self.exchange_rate, 2)
-        self.total_chargeable_gain_in_euro = round(self.total_chargeable_gain / self.exchange_rate, 2)
-        self.total_capital_loss_in_euro = round(self.total_capital_loss / self.exchange_rate, 2)
+            self.total_sale_price += item.sale_price_in_euro
+            self.total_cost_of_shares_sold += item.cost_of_shares_sold_in_euro
+            self.total_chargeable_gain += item.chargeable_gain_in_euro
+            self.total_capital_loss += item.capital_loss_in_euro
         self.loss_from_previous_window = carried_over_loss_in_euro
        
-        chargeable_gain_with_loss_offset = self.total_chargeable_gain_in_euro - self.total_capital_loss_in_euro 
+        chargeable_gain_with_loss_offset = self.total_chargeable_gain - self.total_capital_loss 
         if chargeable_gain_with_loss_offset < 0:
             # loss in this window is greater than gains
             self.taxable_gain = 0
@@ -93,6 +96,10 @@ class TaxPaymentWindow:
                         <th>Cost of shares sold</th>
                         <th>Chargeable gain</th>
                         <th>Capital loss</th>
+                        <th>Sale price (EUR)</th>
+                        <th>Cost of shares sold (EUR)</th>
+                        <th>Chargeable gain (EUR)</th>
+                        <th>Capital loss (EUR)</th>
                     </tr>"""
         for item in self.trade_gain_items:
             output += "<tr>"
@@ -106,10 +113,18 @@ class TaxPaymentWindow:
             output += f"<td>{item.cost_of_shares_sold:.2f}</td>"
             output += f"<td>{item.chargeable_gain:.2f}</td>"
             output += f"<td>{item.capital_loss:.2f}</td>"
+            output += f"<td>{item.sale_price_in_euro:.2f}</td>"
+            output += f"<td>{item.cost_of_shares_sold_in_euro:.2f}</td>"
+            output += f"<td>{item.chargeable_gain_in_euro:.2f}</td>"
+            output += f"<td>{item.capital_loss_in_euro:.2f}</td>"
             output += "</tr>"
         # Total row
         output += "<tr>"
         output += f'<td>Total</td>'
+        output += f"<td></td>"
+        output += f"<td></td>"
+        output += f"<td></td>"
+        output += f"<td></td>"
         output += f"<td></td>"
         output += f"<td></td>"
         output += f"<td></td>"
@@ -129,14 +144,10 @@ class TaxPaymentWindow:
                         <th>Calculation</th>
                         <th>Value €</th>
                     </tr>"""
-        output += f"<tr><td>Sale Price</td><td>{self.total_sale_price:.2f} / {self.exchange_rate:.5f} <i>(forex rate)</i></td><td>"\
-            +f"{self.total_sale_price_in_euro:.2f}</td></tr>"
-        output += f"<tr><td>Cost of shares sold</td><td>{self.total_cost_of_shares_sold:.2f} / {self.exchange_rate:.5f} <i>(forex rate)</i></td><td>"\
-            +f"{self.total_cost_of_shares_sold_in_euro:.2f}</td></tr>"
-        output += f"<tr><td>Chargeable gain</td><td>{self.total_chargeable_gain:.2f} / {self.exchange_rate:.5f} <i>(forex rate)</i></td><td>"\
-            +f"{self.total_chargeable_gain_in_euro:.2f}</td></tr>"
-        output += f"<tr><td>Capital loss</td><td>{self.total_capital_loss:.2f} / {self.exchange_rate:.5f} <i>(forex rate)</i></td><td>"\
-            +f"{self.total_capital_loss_in_euro:.2f}</td></tr>"
+        output += f"<tr><td>Sale Price</td><td></td><td>{self.total_sale_price:.2f}</td></tr>"
+        output += f"<tr><td>Cost of shares sold</td><td></td><td>{self.total_cost_of_shares_sold:.2f}</td></tr>"
+        output += f"<tr><td>Chargeable gain</td><td></td><td>{self.total_chargeable_gain:.2f}</td></tr>"
+        output += f"<tr><td>Capital loss</td><td></td><td>{self.total_capital_loss:.2f}</td></tr>"
         output += f"<tr><td>Carried loss to offset </td><td></td><td>{self.loss_from_previous_window:.2f}</td></tr>"
         output += f"<tr><td>Deduct personal exemption</td><td></td><td>{self.usable_tax_exemption:.2f}</td></tr>"
         output += f"<tr><td>Taxable gain</td><td></td><td>{self.taxable_gain:.2f}</td></tr>"
@@ -206,12 +217,12 @@ class CapitalGainTaxReturn:
        
     def calculate(self):
         for tax_payment_window in self.tax_year.tax_payment_windows_dict.values():
-            self.quoted_shares += tax_payment_window.total_sale_price_in_euro
-            self.total_consideration += tax_payment_window.total_sale_price_in_euro
-            self.chargeable_gains += tax_payment_window.total_chargeable_gain_in_euro
-            self.losses_in_year += tax_payment_window.total_capital_loss_in_euro
-            self.chargeable_gains_net_of_losses += tax_payment_window.total_chargeable_gain_in_euro \
-                - tax_payment_window.total_capital_loss_in_euro
+            self.quoted_shares += tax_payment_window.total_sale_price
+            self.total_consideration += tax_payment_window.total_sale_price
+            self.chargeable_gains += tax_payment_window.total_chargeable_gain
+            self.losses_in_year += tax_payment_window.total_capital_loss
+            self.chargeable_gains_net_of_losses += tax_payment_window.total_chargeable_gain\
+                - tax_payment_window.total_capital_loss
             self.personal_exemption += tax_payment_window.usable_tax_exemption
         self.losses_from_previous_years = self.tax_year.tax_payment_window(11).loss_from_previous_window
         self.net_chargeable_gain = self.chargeable_gains \

@@ -14,6 +14,7 @@ def closed_position_builder(csv):
         closed_date=utils.parse_date(csv[5]),
         closed_price=float(csv[6])
     )
+
    
 def exchange_rate_service_with_multi_date_stub():
     return ExchangeRateService(stub= {
@@ -24,11 +25,15 @@ def exchange_rate_service_with_multi_date_stub():
         }
     )
 
+# TODO: 1. Test using utest user with added EURO abnd CHF stock 
+# TODO: 2. Add new test that uses stock in EU and CHF currency
+
 def test_tax_year_creation():
     closed_positions_csv = [
-        "2022-12-01,SPOT,1000,1,USD,2022-12-31,0.5", # cost: 1000, loss: 500
-        "2023-08-01,BRK-B,1000,1,USD,2023-09-02,5",  # cost: 1000, gain: 4000
-        "2023-12-30,AAPL,1000,1,USD,2023-12-31,0.5", # cost: 1000, loss: 500
+        # date, ticker, size, price, currency, closed_date, closed_price, commission
+        "2022-12-01,SPOT,1000,1,USD,2022-12-31,0.5,0", # cost: 1000, loss: 500
+        "2023-08-01,BRK-B,1000,1,USD,2023-09-02,5,0",  # cost: 1000, gain: 4000
+        "2023-12-30,AAPL,1000,1,USD,2023-12-31,0.5,0", # cost: 1000, loss: 500
     ]
     closed_positions = [closed_position_builder(p) for p in closed_positions_csv]
     service = TaxCalculatorService(closed_positions=closed_positions, 
