@@ -294,7 +294,7 @@ class TradeTodayReportingService():
     def email_html_report(self, simulation=False):
         output = ""
         output += f"<p>Report for {self.user.capitalize()}</p>"
-        output += f"<p><i>Created on {datetime.datetime.now()}</i></p>"
+        output += f"<p><i>Created on {str(datetime.datetime.now()).split('.')[0]}</i></p>"
         # Trades today
         print("Building trade today report ...")
         output += self.trades_today_html_section()
