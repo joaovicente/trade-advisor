@@ -134,6 +134,7 @@ class TaxPaymentWindow:
         output += f"<td></td>"
         output += f"<td></td>"
         output += f"<td></td>"
+        output += f"<td></td>"
         output += f"<td>{self.total_sale_price:.2f}</td>"
         output += f"<td>{self.total_cost_of_shares_sold:.2f}</td>"
         output += f"<td>{self.total_chargeable_gain:.2f}</td>"
