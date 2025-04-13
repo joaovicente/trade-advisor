@@ -287,7 +287,7 @@ class TaxCalculatorService:
     
     def tax_activities_html_report(self) -> str:
         output = ""
-        for tax_year_int in sorted(self.tax_years_dict.keys()):
+        for tax_year_int in sorted(self.tax_years_dict.keys(), reverse=True):
             tax_year = self.tax_years_dict[tax_year_int]
             output += f"<h1>{tax_year_int} Tax</h1>"
             for month in sorted(tax_year.tax_payment_windows_dict.keys()):
