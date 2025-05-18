@@ -180,6 +180,30 @@ def upload(user):
     print(command)
     os.system(command)
     
+    
+@click.command()
+@click.option('--user', '-u', 
+              required=True,
+              help='Test email')
+def test_email(user):
+    """test email for a given user"""
+    if user is not None:
+        s3_bucket = os.environ.get('TRADE_ADVISOR_S3_BUCKET', None)
+        if s3_bucket is None:
+            raise click.UsageError("TRADE_ADVISOR_S3_BUCKET environment variable not set")
+    # Get user info
+    users_s3_path = f'{s3_bucket}/users/users.csv'
+    user_info = UserRepository(users_s3_path).get_by_id(user)
+    if user_info is not None:
+        email_receiver = user_info.email
+        generated_time = str(datetime.datetime.now()).split('.')[0]
+        subject = f"Trade Advisor test email {generated_time}"
+        body = f"<p><i>Test email sent on {generated_time}</i></p>"
+        EmailNotificationService(email_receiver=email_receiver).send_email(subject, body)
+        print(f"Test email sent to {user_info.email}")
+    else:
+        raise click.UsageError(f"user information for {user} not found")
+    
 # Create a Click group to hold the commands
 @click.group()
 def cli():
@@ -190,6 +214,7 @@ cli.add_command(trade_today)
 cli.add_command(portfolio_stats)
 cli.add_command(download)
 cli.add_command(upload)
+cli.add_command(test_email)
 
 if __name__ == "__main__":
     cli()
