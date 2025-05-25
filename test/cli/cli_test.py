@@ -1,4 +1,5 @@
 
+from dotenv import load_dotenv
 from models.open_position import OpenPosition
 from services.open_position_service import OpenPositionService
 from services.stock_compute_service import StockComputeService
@@ -10,6 +11,7 @@ import pytest
 import pytest
 
 def test_trade_today_with_open_position():
+    load_dotenv()
     # TODO: Actually call the CLI method rather than replicating its logic 
     ticker = "SNOW"
     today = "2024-05-31"
@@ -24,6 +26,7 @@ def test_trade_today_with_open_position():
         print(trade)
         
 def test_trade_today_without_open_positions():
+    load_dotenv()
     # TODO: Actually call the CLI method rather than replicating its logic 
     tickers = "JNJ"
     today = "2024-09-27"
@@ -39,4 +42,11 @@ def test_trade_today_without_open_positions():
 def test_my_command():
     runner = CliRunner()
     result = runner.invoke(trade_today, ['-u', 'bugfix', '-o', 'file', '-r', '--skip-currency-conversion'])
+    assert result.exit_code == 0
+    
+#@pytest.mark.skip(reason="Requires environment variables - use settings_test.json")
+def test_cli_with_file_output():
+    load_dotenv()
+    runner = CliRunner()
+    result = runner.invoke(trade_today, ['-u', 'bugfix', '-o', 'file', '-r'])
     assert result.exit_code == 0

@@ -1,0 +1,62 @@
+{
+  "AAPL": {
+    "meta": {
+      "symbol": "AAPL",
+      "interval": "1day",
+      "currency": "USD",
+      "exchange_timezone": "America/New_York",
+      "exchange": "NASDAQ",
+      "mic_code": "XNGS",
+      "type": "Common Stock"
+    },
+    "values": [
+      {
+        "datetime": "2024-08-06",
+        "open": "205.30000",
+        "high": "209.99001",
+        "low": "201.070007",
+        "close": "207.23000",
+        "volume": "69660500"
+      },
+      {
+        "datetime": "2024-08-05",
+        "open": "199.089996",
+        "high": "213.5",
+        "low": "196",
+        "close": "209.27000",
+        "volume": "119548600"
+      }
+    ],
+    "status": "ok"
+  },
+  "ABBV": {
+    "meta": {
+      "symbol": "ABBV",
+      "interval": "1day",
+      "currency": "USD",
+      "exchange_timezone": "America/New_York",
+      "exchange": "NYSE",
+      "mic_code": "XNYS",
+      "type": "Common Stock"
+    },
+    "values": [
+      {
+        "datetime": "2024-08-06",
+        "open": "185.42999",
+        "high": "187.82001",
+        "low": "183.080002",
+        "close": "185.71001",
+        "volume": "4273200"
+      },
+      {
+        "datetime": "2024-08-05",
+        "open": "187.45000",
+        "high": "189.28999",
+        "low": "183.039993",
+        "close": "184.36000",
+        "volume": "6459300"
+      }
+    ],
+    "status": "ok"
+  }
+}

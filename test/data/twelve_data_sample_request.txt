@@ -1,0 +1,6 @@
+https://api.twelvedata.com/time_series?
+symbol=AAPL,ABBV,ADBE,AMD,AMZN&
+interval=1day&
+start_date=2024-08-05&
+end_date=2025-05-18&
+apikey={apikey}

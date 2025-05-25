@@ -54,6 +54,5 @@ temp
 *.swp
 temp.csv
 local_storage
-yfinance_data_*
 test/.env
 test/data/tmp/*

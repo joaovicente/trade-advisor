@@ -14,7 +14,6 @@ class FileRepository():
             self.s3_key = '/'.join(path.split('/')[3:])
         else:
             # Local path
-            self.conn = duckdb.connect(database=':memory:')
             self.path = path
            
     def set_path(self, path):
@@ -53,3 +52,19 @@ class FileRepository():
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             
+    def delete_all_files_in_path(self):
+        s3 = boto3.client('s3')
+        # List objects under the path
+        response = s3.list_objects_v2(Bucket=self.s3_bucket, Prefix=self.s3_key)
+        if 'Contents' in response:
+            delete_keys = [{'Key': obj['Key']} for obj in response['Contents']]
+            # Delete objects in a single call
+            response = s3.delete_objects(
+                Bucket=self.s3_bucket,
+                Delete={'Objects': delete_keys}
+            )
+            if response.get('Errors', None):
+                raise Exception(f"Failed to delete objects: {response['Errors']}")
+            print(f"Deleted {len(delete_keys)} objects from {self.s3_bucket}/{self.s3_key}")
+        else:
+            print(f"No objects found under {self.s3_bucket}/{self.s3_key}")

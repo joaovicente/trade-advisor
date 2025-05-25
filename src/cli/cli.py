@@ -12,6 +12,8 @@ from services.whatsup_notification_service import WhatsappNotificationService
 from services.email_notification_service import EmailNotificationService
 import os
 
+from services.yfinance_data_service import YfinanceDataService
+
 
 @click.command()
 @click.option('--user', '-u',
@@ -179,7 +181,12 @@ def upload(user):
     command = f"aws s3 sync ./local_storage/users/{user} {s3_prefix}/users/{user}"
     print(command)
     os.system(command)
-    
+   
+@click.command()
+def download_yfinance_data():
+    """Download yfinance data for all users"""
+    scmp = StockComputeService(tickers="", todays_date_str=str(datetime.datetime.today().date()), calculate_dates_only=True)
+    YfinanceDataService().download_data_from_api(scmp.warmup_date, scmp.end_date)
     
 @click.command()
 @click.option('--user', '-u', 
@@ -214,6 +221,7 @@ cli.add_command(trade_today)
 cli.add_command(portfolio_stats)
 cli.add_command(download)
 cli.add_command(upload)
+cli.add_command(download_yfinance_data)
 cli.add_command(test_email)
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import pytest
 from test.utils import *                
 import yfinance as yf
 import backtrader as bt
@@ -43,7 +44,9 @@ def test_genericcsv_bug():
         )
         self.cerebro.adddata(data=data, name=ticker)
     self.cerebro.run()
-    
+   
+ 
+@pytest.mark.skip(reason="yfinance rate limiting issues https://github.com/ranaroussi/yfinance/issues/2422")
 def test_download_single_ticker_yahoo_finance_csv_data():
     # Define the stock ticker symbol (e.g., Apple)
     ticker_symbol = "AAPL"
@@ -58,13 +61,15 @@ def test_download_single_ticker_yahoo_finance_csv_data():
 
     print(f"Data saved as {csv_filename}")
     
+@pytest.mark.skip(reason="yfinance rate limiting issues https://github.com/ranaroussi/yfinance/issues/2422")
 def test_download_multi_ticker_yahoo_finance_csv_data():
     # Define the stock ticker symbol (e.g., Apple)
     tickers = ["AAPL", "META"]
 
     # Fetch historical data
     data = yf.download(tickers, start='2024-07-02', end='2024-12-31')  # Custom date range
-
+    
+    assert data.empty == False
     # Loop through each ticker and save separately
     for ticker in tickers:
         # Extract data for a single ticker (like yf.Ticker().history() format)
