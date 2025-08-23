@@ -1,33 +1,36 @@
+import boto3
 import os
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
-
-# using SendGrid's Python Library
-# https://github.com/sendgrid/sendgrid-python
 
 class EmailNotificationService:
     def __init__(self, email_receiver=None):
-        self.sendgrid_api_key = os.environ.get('SENDGRID_API_KEY', None)
+        self.ses = boto3.client('ses', region_name='eu-west-1')
         self.email_sender = os.environ.get('EMAIL_SENDER', None)
         if email_receiver is not None:
             self.email_receiver = email_receiver
         else:
             self.email_receiver = os.environ.get('EMAIL_RECEIVER', None)
-        if any([self.sendgrid_api_key is None, self.email_sender is None, self.email_receiver is None]):
-            raise Exception('Missing environment variables SENDGRID_API_KEY, EMAIL_SENDER, EMAIL_RECEIVER')
+        if any([self.email_sender is None, self.email_receiver is None]):
+            raise Exception('Missing environment variables EMAIL_SENDER, EMAIL_RECEIVER')
 
     def send_email(self, subject, body):
-        message = Mail(
-            from_email=self.email_sender,
-            to_emails=self.email_receiver,
-            subject=subject,
-            html_content=body
-            )
         try:
-            sg = SendGridAPIClient(self.sendgrid_api_key)
-            response = sg.send(message)
-            #print(response.status_code)
-            #print(response.body)
-            #print(response.headers)
+            self.ses.send_email(
+                Source=self.email_sender,
+                Destination={
+                    'ToAddresses': [self.email_receiver],
+                },
+                Message={
+                    'Subject': {
+                        'Data': subject,
+                        'Charset': 'UTF-8'
+                    },
+                    'Body': {
+                        'Html': {
+                            'Data': body,
+                            'Charset': 'UTF-8'
+                        }
+                    }
+                }
+            )
         except Exception as e:
             print(e.message)
