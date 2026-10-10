@@ -20,8 +20,16 @@ class YfinanceDataService:
     def _transform_api_data_format_to_csv_map(self, api_data: str) -> dict:
         # Returns a dictionary with the key as file name and the value as the csv data
         input_data = json.loads(api_data)
+
+        # Normalize single-symbol response
+        if "meta" in input_data and "values" in input_data:
+            ticker = input_data["meta"]["symbol"]
+            input_data = {ticker: input_data}
+
         output = {}
         for ticker, data in input_data.items():
+            if "values" not in data:
+                continue # Skip if there's an API error for a specific ticker
             values = sorted(data["values"], key=lambda x: x["datetime"])
             rows = [f'{v["datetime"]},{v["open"]},{v["high"]},{v["low"]},{v["close"]},{v["volume"]}' for v in values]
             output[f"yfinance_data_{ticker.replace('.','-')}.csv"] = "\n".join(rows)
